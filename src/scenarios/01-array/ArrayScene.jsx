@@ -47,10 +47,37 @@ function getNudge(tried, lastOp) {
 
 /* ── ArrayCell ── */
 
-function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighted }) {
+function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighted, diffState }) {
   const staggerDelay = cascading && cascadeOrigin != null
     ? Math.abs(index - cascadeOrigin) * CASCADE_DELAY_PER_CELL
     : 0
+
+  // Diff coloring for the After row: green = same, red = changed
+  const isShifted = diffState === 'shifted'
+  const isNew     = diffState === 'new'
+  const isUnchanged = diffState === 'same'
+
+  let cellBorder = highlighted ? 'var(--accent)' : 'var(--border)'
+  let cellColor  = highlighted ? 'var(--accent)' : 'var(--text)'
+  let cellBg     = highlighted ? 'rgba(0,255,200,0.06)' : 'transparent'
+  let cellShadow = highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none'
+
+  if (isShifted) {
+    cellBorder = 'rgba(255,51,102,0.5)'
+    cellColor  = 'var(--danger)'
+    cellBg     = 'rgba(255,51,102,0.06)'
+    cellShadow = 'none'
+  } else if (isNew) {
+    cellBorder = 'rgba(255,51,102,0.6)'
+    cellColor  = 'var(--danger)'
+    cellBg     = 'rgba(255,51,102,0.10)'
+    cellShadow = '0 0 12px rgba(255,51,102,0.2)'
+  } else if (isUnchanged) {
+    cellBorder = 'rgba(0,255,200,0.4)'
+    cellColor  = 'var(--accent)'
+    cellBg     = 'rgba(0,255,200,0.06)'
+    cellShadow = 'none'
+  }
 
   return (
     <motion.div
@@ -84,8 +111,8 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
       {/* Index label */}
       <div style={{
         fontSize: 'var(--size-xs)',
-        color: 'var(--accent)',
-        opacity: 0.6,
+        color: isShifted || isNew ? 'var(--danger)' : isUnchanged ? 'var(--accent)' : 'var(--accent)',
+        opacity: diffState ? 0.9 : 0.6,
         letterSpacing: '0.05em',
       }}>
         {index}
@@ -96,16 +123,16 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
         style={{
           width: 'var(--cell-w)',
           height: 'var(--cell-h)',
-          border: `1px solid ${highlighted ? 'var(--accent)' : 'var(--border)'}`,
+          border: `1px solid ${cellBorder}`,
           borderRadius: 'var(--radius-sm)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: 'var(--size-base)',
-          fontWeight: 400,
-          color: highlighted ? 'var(--accent)' : 'var(--text)',
-          background: highlighted ? 'rgba(0,255,200,0.06)' : 'transparent',
-          boxShadow: highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none',
+          fontWeight: isNew ? 700 : 400,
+          color: cellColor,
+          background: cellBg,
+          boxShadow: cellShadow,
           transition: 'border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s',
           userSelect: 'none',
         }}
@@ -113,6 +140,79 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
         {value}
       </motion.div>
     </motion.div>
+  )
+}
+
+/* ── StaticCell (frozen before-state) ── */
+
+function StaticCell({ value, index, variant, shiftDir }) {
+  const isDanger  = variant === 'danger'
+  const isInsert  = variant === 'insert'
+  const isTarget  = isDanger || isInsert
+  const isShifted = shiftDir === 'left' || shiftDir === 'right'
+  // Before row: red = selected target, neutral = everything else
+  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-dim)'
+  const borderClr = isDanger ? 'rgba(255,51,102,0.6)' : isInsert ? 'rgba(0,255,200,0.6)' : 'var(--border)'
+  const bg        = isDanger ? 'rgba(255,51,102,0.10)' : isInsert ? 'rgba(0,255,200,0.10)' : 'transparent'
+  const glow      = isDanger ? '0 0 16px rgba(255,51,102,0.25)' : isInsert ? '0 0 16px rgba(0,255,200,0.25)' : 'none'
+  const arrow     = shiftDir === 'left' ? '←' : shiftDir === 'right' ? '→' : null
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      position: 'relative',
+    }}>
+      <div style={{ fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-dim)', opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em' }}>
+        {index}
+      </div>
+      <div style={{
+        width: 'var(--cell-w)', height: 'var(--cell-h)',
+        border: `${isTarget ? '2px' : '1px'} solid ${borderClr}`,
+        borderRadius: 'var(--radius-sm)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 'var(--size-base)', fontWeight: isTarget ? 700 : 400,
+        color, background: bg,
+        opacity: isTarget ? 1 : 0.5,
+        boxShadow: glow,
+        userSelect: 'none',
+        textDecoration: isDanger ? 'line-through' : 'none',
+        position: 'relative',
+      }}>
+        {value}
+      </div>
+
+      {/* Shift arrow below shifted cells */}
+      {isShifted && (
+        <div style={{
+          fontSize: '0.6rem',
+          color: 'rgba(255,51,102,0.8)',
+          fontWeight: 700,
+          lineHeight: 1,
+        }}>
+          {arrow}
+        </div>
+      )}
+
+      {/* Action badge */}
+      {isTarget && (
+        <div style={{
+          position: 'absolute',
+          top: -2,
+          right: -6,
+          width: 16, height: 16,
+          borderRadius: '50%',
+          background: isDanger ? 'var(--danger)' : 'var(--accent)',
+          color: '#000',
+          fontSize: '0.6rem',
+          fontWeight: 900,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          lineHeight: 1,
+          boxShadow: `0 0 8px ${isDanger ? 'rgba(255,51,102,0.5)' : 'rgba(0,255,200,0.5)'}`,
+        }}>
+          {isDanger ? '×' : '+'}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -171,6 +271,7 @@ export default function ArrayScene() {
   const [history, setHistory] = useState([])
   const [stressMode, setStressMode] = useState(null)
   const [highlightedIdx, setHighlightedIdx] = useState(null)
+  const [snapshot, setSnapshot] = useState(null) // { items, targetIndex, action } | null
 
   const insertPoolIdx = useRef(0)
   const cascadeTimer = useRef(null)
@@ -221,6 +322,7 @@ export default function ArrayScene() {
     const cost = getDeleteCost(items.length, index)
     const label = items[index].value
 
+    setSnapshot({ items: [...items], targetIndex: index, action: 'Delete' })
     setPopover(null)
     setOps(cost)
     setHighlightedIdx(null)
@@ -258,6 +360,7 @@ export default function ArrayScene() {
     const cost = getInsertCost(items.length, index)
     const name = nextInsertName()
 
+    setSnapshot({ items: [...items], targetIndex: index, action: 'Insert' })
     setPopover(null)
     setOps(cost)
 
@@ -282,6 +385,7 @@ export default function ArrayScene() {
     const cost = getInsertCost(items.length, insertIdx)
     const name = nextInsertName()
 
+    setSnapshot({ items: [...items], targetIndex: insertIdx, action: 'Insert' })
     setPopover(null)
     setOps(cost)
 
@@ -306,6 +410,7 @@ export default function ArrayScene() {
     const cost = 0
     const name = nextInsertName()
 
+    setSnapshot({ items: [...items], targetIndex: insertIdx, action: 'Insert' })
     setOps(cost)
 
     const newItem = makeItem(name)
@@ -333,6 +438,7 @@ export default function ArrayScene() {
     setCascading(false)
     setCascadeOrigin(null)
     setHighlightedIdx(null)
+    setSnapshot(null)
 
     // Counter animates to value, then stop
     setTimeout(() => setAnimateCounter(false), 2500)
@@ -353,6 +459,7 @@ export default function ArrayScene() {
     setHistory([])
     setStressMode(null)
     setHighlightedIdx(null)
+    setSnapshot(null)
     setTried({ any: false, front: false, end: false, middle: false, insert: false, frontCost: 0, endCost: 0, count: 0 })
     setLastOp(null)
   }, [clearCascadeTimer])
@@ -457,27 +564,89 @@ export default function ArrayScene() {
       {/* ── Canvas ── */}
       <div style={{
         position: 'relative', zIndex: 1, flex: 1,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: snapshot ? 'flex-start' : 'center',
         padding: '16px var(--canvas-pad)',
-        overflow: 'hidden',
+        overflow: 'auto',
       }}>
         {stressMode ? (
           <StressBar count={stressMode} />
         ) : (
           <>
+            {/* ── Before row (snapshot) ── */}
+            <AnimatePresence>
+              {snapshot && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
+                  style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}
+                >
+                  <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
+                    Before
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--cell-gap)', flexWrap: 'nowrap', alignItems: 'flex-start', justifyContent: 'center' }}>
+                    {snapshot.items.map((item, i) => {
+                      const isTarget = i === snapshot.targetIndex
+                      let shiftDir = null
+                      if (snapshot.action === 'Delete' && i > snapshot.targetIndex) shiftDir = 'left'
+                      if ((snapshot.action === 'Insert') && i >= snapshot.targetIndex) shiftDir = 'right'
+
+                      return (
+                        <StaticCell
+                          key={item.id}
+                          value={item.value}
+                          index={i}
+                          variant={isTarget ? (snapshot.action === 'Delete' ? 'danger' : 'insert') : null}
+                          shiftDir={isTarget ? null : shiftDir}
+                        />
+                      )
+                    })}
+                  </div>
+
+                  {/* Connector line between before/after */}
+                  <div style={{
+                    width: 1, height: 16,
+                    borderLeft: '1px dashed var(--border)',
+                  }} />
+
+                  <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
+                    After
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div style={{ display: 'flex', gap: 'var(--cell-gap)', flexWrap: 'nowrap', alignItems: 'flex-end', position: 'relative' }}>
               <AnimatePresence mode="popLayout">
-                {items.map((item, index) => (
-                  <ArrayCell
-                    key={item.id}
-                    value={item.value}
-                    index={index}
-                    cascading={cascading}
-                    cascadeOrigin={cascadeOrigin}
-                    highlighted={highlightedIdx === index}
-                    onClick={(e) => handleCellClick(index, e)}
-                  />
-                ))}
+                {items.map((item, index) => {
+                  // Compute diff state relative to snapshot
+                  let diffState = null
+                  if (snapshot) {
+                    const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
+                    if (prevIndex === -1) {
+                      diffState = 'new'         // didn't exist before (inserted)
+                    } else if (prevIndex === index) {
+                      diffState = 'same'         // same position
+                    } else {
+                      diffState = 'shifted'      // moved to a different index
+                    }
+                  }
+
+                  return (
+                    <ArrayCell
+                      key={item.id}
+                      value={item.value}
+                      index={index}
+                      cascading={cascading}
+                      cascadeOrigin={cascadeOrigin}
+                      highlighted={highlightedIdx === index}
+                      diffState={diffState}
+                      onClick={(e) => handleCellClick(index, e)}
+                    />
+                  )
+                })}
               </AnimatePresence>
 
               {/* Popover */}
