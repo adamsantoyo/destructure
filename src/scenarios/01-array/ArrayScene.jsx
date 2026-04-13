@@ -654,8 +654,11 @@ export default function ArrayScene() {
                 {popover && !cascading && (
                   <CellPopover
                     cellIndex={popover.index}
-                    arrayLength={items.length}
                     position={{ x: popover.x, y: popover.y }}
+                    deleteCost={getDeleteCost(items.length, popover.index)}
+                    insertBeforeCost={getInsertCost(items.length, popover.index)}
+                    insertAfterCost={getInsertCost(items.length, popover.index + 1)}
+                    costUnit="shift"
                     onDelete={() => executeDelete(popover.index)}
                     onInsertBefore={() => executeInsertBefore(popover.index)}
                     onInsertAfter={() => executeInsertAfter(popover.index)}

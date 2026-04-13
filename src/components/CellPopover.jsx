@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion' // eslint-disable-line no-unused-vars
-import { getDeleteCost, getInsertCost } from '../structures/array'
 
-function PopoverRow({ label, cost, onClick, danger }) {
+function PopoverRow({ label, cost, costUnit, onClick, danger }) {
   const color = danger ? 'var(--danger)' : 'var(--accent)'
   const bg    = danger ? 'rgba(255,51,102,0.06)' : 'rgba(0,255,200,0.06)'
+  const unit  = costUnit || 'shift'
 
   return (
     <button
@@ -34,16 +34,13 @@ function PopoverRow({ label, cost, onClick, danger }) {
         fontWeight: 700,
         whiteSpace: 'nowrap',
       }}>
-        {cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`}
+        {cost === 0 ? 'O(1)' : `${cost} ${unit}${cost !== 1 ? 's' : ''}`}
       </span>
     </button>
   )
 }
 
-export default function CellPopover({ cellIndex, arrayLength, position, onDelete, onInsertBefore, onInsertAfter, onClose }) {
-  const deleteCost       = getDeleteCost(arrayLength, cellIndex)
-  const insertBeforeCost = getInsertCost(arrayLength, cellIndex)
-  const insertAfterCost  = getInsertCost(arrayLength, cellIndex + 1)
+export default function CellPopover({ cellIndex, position, onDelete, onInsertBefore, onInsertAfter, onClose, deleteCost, insertBeforeCost, insertAfterCost, costUnit }) {
 
   return (
     <>
@@ -90,18 +87,21 @@ export default function CellPopover({ cellIndex, arrayLength, position, onDelete
         <PopoverRow
           label="Delete"
           cost={deleteCost}
+          costUnit={costUnit}
           onClick={onDelete}
           danger={deleteCost > 0}
         />
         <PopoverRow
           label="Insert before"
           cost={insertBeforeCost}
+          costUnit={costUnit}
           onClick={onInsertBefore}
           danger={insertBeforeCost > 1}
         />
         <PopoverRow
           label="Insert after"
           cost={insertAfterCost}
+          costUnit={costUnit}
           onClick={onInsertAfter}
           danger={insertAfterCost > 1}
         />

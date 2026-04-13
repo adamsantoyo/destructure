@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import ArrayScene from './scenarios/01-array/ArrayScene'
+import LinkedListScene from './scenarios/02-linked-list/LinkedListScene'
 
 const SCENARIOS = [
-  { id: '01', label: 'Array',        Scene: ArrayScene,  ready: true  },
-  { id: '02', label: 'Linked List',  Scene: null,        ready: false },
-  { id: '03', label: 'Stack',        Scene: null,        ready: false },
-  { id: '04', label: 'Queue',        Scene: null,        ready: false },
-  { id: '05', label: 'Hash Table',   Scene: null,        ready: false },
-  { id: '06', label: 'BST',          Scene: null,        ready: false },
+  { id: '01', label: 'Array',        Scene: ArrayScene,       ready: true  },
+  { id: '02', label: 'Linked List',  Scene: LinkedListScene,  ready: true  },
+  { id: '03', label: 'Stack',        Scene: null,             ready: false },
+  { id: '04', label: 'Queue',        Scene: null,             ready: false },
+  { id: '05', label: 'Hash Table',   Scene: null,             ready: false },
+  { id: '06', label: 'BST',          Scene: null,             ready: false },
 ]
 
 function ComingSoon({ label }) {
