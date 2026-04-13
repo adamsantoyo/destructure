@@ -1,22 +1,21 @@
 import { getTone } from '../styles/tones'
 
-export default function StatusPill({ children, tone = 'neutral' }) {
+export default function StatusPill({ tone = 'accent', children }) {
   const palette = getTone(tone)
-
   return (
-    <div
-      style={{
-        padding: '6px 10px',
-        borderRadius: 999,
-        border: `1px solid ${palette.border}`,
-        background: palette.pill,
-        color: palette.text,
-        fontSize: '0.72rem',
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '3px 10px',
+      borderRadius: 'var(--radius-pill)',
+      border: `1px solid ${palette.border}`,
+      background: palette.background,
+      fontSize: '0.7rem',
+      fontWeight: 400,
+      color: palette.text,
+      letterSpacing: '0.06em',
+      whiteSpace: 'nowrap',
+    }}>
       {children}
     </div>
   )

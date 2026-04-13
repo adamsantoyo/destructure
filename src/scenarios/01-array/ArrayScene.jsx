@@ -364,12 +364,11 @@ export default function ArrayScene() {
     setStressMode(null)
 
     const rect = event.currentTarget.getBoundingClientRect()
-    const containerRect = containerRef.current?.getBoundingClientRect() ?? { left: 0, top: 0 }
 
     setPopover({
       index,
-      x: rect.left + rect.width / 2 - containerRect.left,
-      y: rect.bottom - containerRect.top + 8,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 8,
     })
   }, [cascading])
 
