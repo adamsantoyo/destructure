@@ -3,13 +3,14 @@ import ArrayScene from './scenarios/01-array/ArrayScene'
 import LinkedListScene from './scenarios/02-linked-list/LinkedListScene'
 import StackScene from './scenarios/03-stack/StackScene'
 import QueueScene from './scenarios/04-queue/QueueScene'
+import HashTableScene from './scenarios/05-hash-table/HashTableScene'
 
 const SCENARIOS = [
   { id: '01', label: 'Array',        Scene: ArrayScene,       ready: true  },
   { id: '02', label: 'Linked List',  Scene: LinkedListScene,  ready: true  },
   { id: '03', label: 'Stack',        Scene: StackScene,       ready: true  },
   { id: '04', label: 'Queue',        Scene: QueueScene,       ready: true  },
-  { id: '05', label: 'Hash Table',   Scene: null,             ready: false },
+  { id: '05', label: 'Hash Table',   Scene: HashTableScene,   ready: true  },
   { id: '06', label: 'BST',          Scene: null,             ready: false },
 ]
 
