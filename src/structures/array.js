@@ -9,6 +9,18 @@
  * and the counter climbs visibly. You feel the cost.
  */
 
+/* ── Pure cost calculators (no steps, no animation) ── */
+
+export function getDeleteCost(length, index) {
+  if (index < 0 || index >= length) return 0
+  return length - index - 1
+}
+
+export function getInsertCost(length, index) {
+  if (index < 0 || index > length) return 0
+  return length - index
+}
+
 export function deleteFirst(arr) {
   if (!arr.length) return [{ type: 'info', explanation: 'The array is already empty.', ops: 0 }]
 
