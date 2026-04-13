@@ -21,32 +21,34 @@ function resetIds() { nextId = 0 }
 
 /* ── Nudge logic ── */
 
-function getNudge(tried) {
+function getNudge(tried, lastOp) {
   if (!tried.any) {
     return { tone: 'neutral', eyebrow: 'Queue', text: 'Enqueue items, then dequeue. Watch the order.', detail: 'First in, first out — the oldest item leaves first.' }
   }
-  if (tried.count === 1) {
-    return { tone: 'accent', eyebrow: 'FIFO', text: 'The first item you enqueued was the first to leave. That\'s fair.', detail: null }
+  if (tried.count === 1 && lastOp) {
+    return lastOp.action === 'Dequeue'
+      ? { tone: 'accent', eyebrow: 'FIFO', text: `"${lastOp.label}" was the first in, so it was the first out. That's fair.`, detail: null }
+      : { tone: 'accent', eyebrow: 'Enqueued', text: `"${lastOp.label}" joined the back of the line. Dequeue to see who leaves first.`, detail: null }
   }
-  if (tried.count >= 3 && tried.count < 5) {
+  if (tried.count < 4) {
+    return { tone: 'neutral', eyebrow: 'Keep going', text: 'Enqueue several, then dequeue several. The order tells the story.', detail: 'Everyone waits their turn. No cutting.' }
+  }
+  if (tried.count < 6) {
     return { tone: 'success', eyebrow: 'Pattern', text: 'Enqueue: A, B, C. Dequeue: A, B, C. Same order in, same order out.', detail: 'First In, First Out — like a line at a store.' }
   }
-  if (tried.count >= 5) {
-    return null
-  }
-  return { tone: 'neutral', eyebrow: 'Queue', text: 'Enqueue items, then dequeue. Watch the order.', detail: 'First in, first out — the oldest item leaves first.' }
+  return null
 }
 
 /* ── QueueCell ── */
 
-function QueueCell({ value, index, isFront, isBack, onClick, diffState, blocked }) {
+function QueueCell({ value, index, isFront, isBack, onClick, diffState, blocked, highlighted }) {
   const isNew = diffState === 'new'
   const isUnchanged = diffState === 'same'
 
-  let cellBorder = 'var(--border)'
-  let cellColor = 'var(--text)'
-  let cellBg = 'transparent'
-  let cellShadow = 'none'
+  let cellBorder = highlighted ? 'var(--accent)' : 'var(--border)'
+  let cellColor = highlighted ? 'var(--accent)' : 'var(--text)'
+  let cellBg = highlighted ? 'rgba(0,255,200,0.06)' : 'transparent'
+  let cellShadow = highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none'
 
   if (isNew) {
     cellBorder = 'rgba(0,255,200,0.6)'
@@ -96,7 +98,7 @@ function QueueCell({ value, index, isFront, isBack, onClick, diffState, blocked 
       {/* Index label */}
       <div style={{
         fontSize: 'var(--size-xs)',
-        color: isNew ? 'var(--danger)' : isUnchanged ? 'var(--accent)' : 'var(--accent)',
+        color: isNew ? 'var(--accent)' : isUnchanged ? 'var(--accent)' : 'var(--accent)',
         opacity: diffState ? 0.9 : 0.6,
         letterSpacing: '0.05em',
       }}>
@@ -214,17 +216,18 @@ let historyId = 0
 
 export default function QueueScene() {
   const [items, setItems] = useState(() => makeItems(INITIAL_NAMES))
-  const [ops] = useState(0)
   const [history, setHistory] = useState([])
   const [snapshot, setSnapshot] = useState(null)
   const [highlightedIdx, setHighlightedIdx] = useState(null)
   const [blockedMessage, setBlockedMessage] = useState(null)
+  const [opsCount, setOpsCount] = useState(0)
 
   const insertPoolIdx = useRef(0)
   const highlightTimer = useRef(null)
   const blockedTimer = useRef(null)
 
   const [tried, setTried] = useState({ any: false, count: 0 })
+  const [lastOp, setLastOp] = useState(null)
 
   const clearTimers = useCallback(() => {
     if (highlightTimer.current) { clearTimeout(highlightTimer.current); highlightTimer.current = null }
@@ -254,6 +257,9 @@ export default function QueueScene() {
       setHistory(prev => [...prev, { id: historyId++, action: 'Dequeue', label, cost: 0 }])
       setTried(prev => ({ any: true, count: prev.count + 1 }))
     }, 150)
+
+    setOpsCount(prev => prev + 1)
+    setLastOp({ action: 'Dequeue', label })
   }, [items])
 
   /* ── Execute Enqueue ── */
@@ -265,6 +271,8 @@ export default function QueueScene() {
     setItems(prev => [...prev, newItem])
     setHistory(prev => [...prev, { id: historyId++, action: 'Enqueue', label: name, cost: 0 }])
     setTried(prev => ({ any: true, count: prev.count + 1 }))
+    setOpsCount(prev => prev + 1)
+    setLastOp({ action: 'Enqueue', label: name })
   }, [items, nextInsertName])
 
   /* ── Cell click handler ── */
@@ -292,6 +300,8 @@ export default function QueueScene() {
     setHighlightedIdx(null)
     setBlockedMessage(null)
     setTried({ any: false, count: 0 })
+    setLastOp(null)
+    setOpsCount(0)
   }, [clearTimers])
 
   /* ── Keyboard shortcuts ── */
@@ -318,7 +328,7 @@ export default function QueueScene() {
 
   const isEmpty = items.length === 0
   const promptCount = items.length || INITIAL_NAMES.length
-  const nudge = getNudge(tried)
+  const nudge = getNudge(tried, lastOp)
 
   /* ── Render ── */
 
@@ -344,11 +354,9 @@ export default function QueueScene() {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
           <Counter
-            value={ops}
+            value={opsCount}
             danger={false}
-            label="shifts"
-            animate={false}
-            animateDuration={0.3}
+            label="ops"
           />
           <StatusPill tone="accent">O(1) · always</StatusPill>
         </div>

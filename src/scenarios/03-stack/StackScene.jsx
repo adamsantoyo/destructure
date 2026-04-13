@@ -21,30 +21,35 @@ function resetIds() { nextId = 0 }
 
 /* ── Nudge logic ── */
 
-function getNudge(tried) {
+function getNudge(tried, lastOp) {
   if (!tried.any) {
     return { tone: 'neutral', eyebrow: 'Stack', text: 'Push items, then pop them. Watch the order.', detail: 'Last in, first out — the most recent item leaves first.' }
   }
-  if (tried.count < 2) {
-    return { tone: 'accent', eyebrow: 'LIFO', text: 'The last item you pushed was the first to pop. Try pushing more, then popping.', detail: null }
+  if (tried.count === 1 && lastOp) {
+    return lastOp.action === 'Pop'
+      ? { tone: 'accent', eyebrow: 'LIFO', text: `"${lastOp.label}" was the last in, so it was first out. Try pushing more, then popping.`, detail: null }
+      : { tone: 'accent', eyebrow: 'Pushed', text: `"${lastOp.label}" is now on top. Everything below is buried. Pop to see the order.`, detail: null }
   }
-  if (tried.count < 5) {
-    return { tone: 'success', eyebrow: 'Pattern', text: 'Push order: A, B, C. Pop order: C, B, A. That\u2019s LIFO.', detail: 'Last In, First Out — like a stack of plates.' }
+  if (tried.count < 4) {
+    return { tone: 'neutral', eyebrow: 'Keep going', text: 'Push several, then pop several. The order tells the story.', detail: 'Try alternating: push, pop, push, push, pop, pop.' }
+  }
+  if (tried.count < 6) {
+    return { tone: 'success', eyebrow: 'Pattern', text: 'Push order: A, B, C. Pop order: C, B, A. That\u2019s LIFO.', detail: 'Last In, First Out \u2014 like a stack of plates.' }
   }
   return null
 }
 
 /* ── StackCell ── */
 
-function StackCell({ value, depth, isTop, onClick, diffState }) {
+function StackCell({ value, depth, isTop, onClick, diffState, highlighted }) {
   const isShifted = diffState === 'shifted'
   const isNew     = diffState === 'new'
   const isUnchanged = diffState === 'same'
 
-  let cellBorder = 'var(--border)'
-  let cellColor  = 'var(--text)'
-  let cellBg     = 'transparent'
-  let cellShadow = 'none'
+  let cellBorder = highlighted ? 'var(--accent)' : 'var(--border)'
+  let cellColor  = highlighted ? 'var(--accent)' : 'var(--text)'
+  let cellBg     = highlighted ? 'rgba(0,255,200,0.06)' : 'transparent'
+  let cellShadow = highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none'
 
   if (isShifted) {
     cellBorder = 'rgba(255,51,102,0.5)'
@@ -145,11 +150,12 @@ function StackCell({ value, depth, isTop, onClick, diffState }) {
 
 function StaticStackCell({ value, depth, variant }) {
   const isDanger = variant === 'danger'
-  const isTarget = isDanger
-  const color     = isDanger ? 'var(--danger)' : 'var(--text-dim)'
-  const borderClr = isDanger ? 'rgba(255,51,102,0.6)' : 'var(--border)'
-  const bg        = isDanger ? 'rgba(255,51,102,0.10)' : 'transparent'
-  const glow      = isDanger ? '0 0 16px rgba(255,51,102,0.25)' : 'none'
+  const isInsert = variant === 'insert'
+  const isTarget = isDanger || isInsert
+  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-dim)'
+  const borderClr = isDanger ? 'rgba(255,51,102,0.6)' : isInsert ? 'rgba(0,255,200,0.6)' : 'var(--border)'
+  const bg        = isDanger ? 'rgba(255,51,102,0.10)' : isInsert ? 'rgba(0,255,200,0.10)' : 'transparent'
+  const glow      = isDanger ? '0 0 16px rgba(255,51,102,0.25)' : isInsert ? '0 0 16px rgba(0,255,200,0.25)' : 'none'
 
   return (
     <div style={{
@@ -191,15 +197,15 @@ function StaticStackCell({ value, depth, variant }) {
           transform: 'translateX(-6px)',
           width: 16, height: 16,
           borderRadius: '50%',
-          background: 'var(--danger)',
+          background: isDanger ? 'var(--danger)' : 'var(--accent)',
           color: '#000',
           fontSize: '0.6rem',
           fontWeight: 900,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           lineHeight: 1,
-          boxShadow: '0 0 8px rgba(255,51,102,0.5)',
+          boxShadow: `0 0 8px ${isDanger ? 'rgba(255,51,102,0.5)' : 'rgba(0,255,200,0.5)'}`,
         }}>
-          ×
+          {isDanger ? '×' : '+'}
         </div>
       )}
     </div>
@@ -222,6 +228,8 @@ export default function StackScene() {
   const containerRef = useRef(null)
 
   const [tried, setTried] = useState({ any: false, popped: false, pushed: false, count: 0 })
+  const [lastOp, setLastOp] = useState(null)
+  const [opsCount, setOpsCount] = useState(0)
 
   useEffect(() => {
     return () => {
@@ -263,12 +271,14 @@ export default function StackScene() {
       setHistory(prev => [...prev, { id: historyId++, action: 'Pop', label, cost: 0 }])
     }, 150)
 
+    setOpsCount(prev => prev + 1)
     setTried(prev => ({
       ...prev,
       any: true,
       popped: true,
       count: prev.count + 1,
     }))
+    setLastOp({ action: 'Pop', label })
   }, [items])
 
   /* ── Execute Push ── */
@@ -284,12 +294,14 @@ export default function StackScene() {
 
     setHistory(prev => [...prev, { id: historyId++, action: 'Push', label: name, cost: 0 }])
 
+    setOpsCount(prev => prev + 1)
     setTried(prev => ({
       ...prev,
       any: true,
       pushed: true,
       count: prev.count + 1,
     }))
+    setLastOp({ action: 'Push', label: name })
   }, [items, nextInsertName])
 
   /* ── Reset ── */
@@ -303,6 +315,8 @@ export default function StackScene() {
     setHighlightedIdx(null)
     setBlockedMessage(null)
     setTried({ any: false, popped: false, pushed: false, count: 0 })
+    setLastOp(null)
+    setOpsCount(0)
   }, [])
 
   /* ── Cell click ── */
@@ -340,7 +354,7 @@ export default function StackScene() {
   /* ── Derived state ── */
 
   const isEmpty = items.length === 0
-  const nudge = getNudge(tried)
+  const nudge = getNudge(tried, lastOp)
 
   // Render items top-to-bottom: last array element at visual top
   const displayItems = [...items].reverse()
@@ -368,8 +382,8 @@ export default function StackScene() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
-          <Counter value={0} label="cost" />
-          <StatusPill tone="accent">O(1)</StatusPill>
+          <Counter value={opsCount} label="ops" />
+          <StatusPill tone="accent">O(1) · always</StatusPill>
         </div>
       </div>
 
@@ -448,7 +462,7 @@ export default function StackScene() {
                       key={item.id}
                       value={item.value}
                       depth={displayIdx}
-                      variant={isTarget ? 'danger' : null}
+                      variant={isTarget ? (snapshot.action === 'Pop' ? 'danger' : 'insert') : null}
                     />
                   )
                 })
