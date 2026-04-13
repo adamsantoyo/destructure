@@ -1,0 +1,47 @@
+/* ─────────────────────────────────────────
+   DESTRUCTURE — Design Tokens
+   Single source of truth for all visual decisions
+───────────────────────────────────────── */
+
+:root {
+  /* Colors */
+  --bg:           #0A0A0F;
+  --grid-dot:     #1A1A2E;
+  --border:       #2A2A3E;
+  --muted:        #4A4A6A;
+  --accent:       #00FFC8;
+  --accent-glow:  rgba(0, 255, 200, 0.18);
+  --danger:       #FF3366;
+  --danger-glow:  rgba(255, 51, 102, 0.18);
+  --text:         #C8C8E0;
+  --text-dim:     #6A6A8A;
+
+  /* Typography */
+  --font:         'JetBrains Mono', 'Fira Mono', 'Courier New', monospace;
+  --size-xs:      0.75rem;
+  --size-sm:      0.875rem;
+  --size-base:    1.125rem;
+  --size-prompt:  1.5rem;
+  --size-counter: 2rem;
+
+  /* Spacing */
+  --gap-xs:  4px;
+  --gap-sm:  8px;
+  --gap-md:  16px;
+  --gap-lg:  32px;
+  --gap-xl:  48px;
+
+  /* Cells */
+  --cell-w:       72px;
+  --cell-h:       56px;
+  --cell-gap:     10px;
+  --cell-radius:  6px;
+
+  /* Motion */
+  --ease-fast:    200ms linear;
+  --ease-medium:  300ms linear;
+
+  /* Layout */
+  --sidebar-w:    220px;
+  --canvas-pad:   48px;
+}
