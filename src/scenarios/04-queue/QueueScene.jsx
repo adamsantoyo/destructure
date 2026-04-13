@@ -23,25 +23,120 @@ function resetIds() { nextId = 0 }
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Queue', text: 'Enqueue items, then dequeue. Watch the order.', detail: 'First in, first out — the oldest item leaves first.' }
+    return { tone: 'neutral', eyebrow: 'Queue', text: 'Click any item to see what you can do.', detail: 'First in, first out \u2014 the oldest item leaves first.' }
   }
   if (tried.count === 1 && lastOp) {
     return lastOp.action === 'Dequeue'
-      ? { tone: 'accent', eyebrow: 'FIFO', text: `"${lastOp.label}" was the first in, so it was the first out. That's fair.`, detail: null }
+      ? { tone: 'accent', eyebrow: 'FIFO', text: `"${lastOp.label}" was the first in, so it was the first out. That\u2019s fair.`, detail: null }
       : { tone: 'accent', eyebrow: 'Enqueued', text: `"${lastOp.label}" joined the back of the line. Dequeue to see who leaves first.`, detail: null }
   }
   if (tried.count < 4) {
     return { tone: 'neutral', eyebrow: 'Keep going', text: 'Enqueue several, then dequeue several. The order tells the story.', detail: 'Everyone waits their turn. No cutting.' }
   }
   if (tried.count < 6) {
-    return { tone: 'success', eyebrow: 'Pattern', text: 'Enqueue: A, B, C. Dequeue: A, B, C. Same order in, same order out.', detail: 'First In, First Out — like a line at a store.' }
+    return { tone: 'success', eyebrow: 'Pattern', text: 'Enqueue: A, B, C. Dequeue: A, B, C. Same order in, same order out.', detail: 'First In, First Out \u2014 like a line at a store.' }
   }
   return null
 }
 
+/* ── QueuePopover ── */
+
+function QueuePopover({ isFront, position, value, behindCount, onDequeue, onEnqueue, onClose }) {
+  const bg = 'rgba(0,255,200,0.06)'
+  const dangerBg = 'rgba(255,51,102,0.06)'
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+      <motion.div
+        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -4, scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        style={{
+          position: 'fixed',
+          left: position.x,
+          top: position.y,
+          transform: 'translateX(-50%)',
+          zIndex: 20,
+          background: 'rgba(10,10,20,0.96)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          padding: '6px',
+          minWidth: 200,
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{
+          padding: '4px 12px 8px',
+          fontSize: '0.68rem',
+          color: 'var(--text-dim)',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          borderBottom: '1px solid var(--border)',
+          marginBottom: 4,
+        }}>
+          {isFront ? `front \u00b7 "${value}"` : `"${value}"`}
+        </div>
+
+        {isFront ? (
+          <>
+            <button
+              onClick={onDequeue}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                width: '100%', padding: '8px 12px', background: 'transparent',
+                border: 'none', borderRadius: 6, cursor: 'pointer',
+                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
+                gap: 24, transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = dangerBg}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span>Dequeue</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
+            </button>
+            <button
+              onClick={onEnqueue}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                width: '100%', padding: '8px 12px', background: 'transparent',
+                border: 'none', borderRadius: 6, cursor: 'pointer',
+                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
+                gap: 24, transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = bg}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span>Enqueue at back</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
+            </button>
+          </>
+        ) : (
+          <div style={{
+            padding: '10px 12px',
+            fontSize: '0.78rem',
+            color: 'var(--danger)',
+            lineHeight: 1.5,
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>
+              Blocked
+            </div>
+            <div style={{ color: 'var(--text-dim)', fontWeight: 300 }}>
+              {behindCount} item{behindCount !== 1 ? 's' : ''} ahead in line.
+              They arrived first \u2014 they leave first. That\u2019s the constraint.
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </>
+  )
+}
+
 /* ── QueueCell ── */
 
-function QueueCell({ value, index, isFront, isBack, onClick, diffState, blocked, highlighted }) {
+function QueueCell({ value, index, isFront, isBack, onClick, diffState, highlighted }) {
   const isNew = diffState === 'new'
   const isUnchanged = diffState === 'same'
 
@@ -59,11 +154,7 @@ function QueueCell({ value, index, isFront, isBack, onClick, diffState, blocked,
     cellBorder = 'rgba(0,255,200,0.4)'
     cellColor = 'var(--accent)'
     cellBg = 'rgba(0,255,200,0.06)'
-    cellShadow = 'none'
   }
-
-  const interactive = isFront
-  const dimmed = !isFront
 
   return (
     <motion.div
@@ -72,33 +163,21 @@ function QueueCell({ value, index, isFront, isBack, onClick, diffState, blocked,
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.6, x: -20 }}
       transition={{
-        type: 'spring',
-        stiffness: 500,
-        damping: 30,
+        type: 'spring', stiffness: 500, damping: 30,
         layout: { type: 'spring', stiffness: 400, damping: 28 },
       }}
       onClick={onClick}
-      whileHover={interactive
-        ? { scale: 1.05, borderColor: 'var(--accent)' }
-        : blocked
-          ? {}
-          : {}
-      }
-      whileTap={interactive ? { scale: 0.97 } : {}}
+      whileHover={{ scale: 1.05, borderColor: 'var(--accent)' }}
+      whileTap={{ scale: 0.97 }}
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 6,
-        cursor: interactive ? 'pointer' : 'not-allowed',
-        position: 'relative',
-        opacity: dimmed && !diffState ? 0.5 : 1,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 6, cursor: 'pointer', position: 'relative',
       }}
     >
       {/* Index label */}
       <div style={{
         fontSize: 'var(--size-xs)',
-        color: isNew ? 'var(--accent)' : isUnchanged ? 'var(--accent)' : 'var(--accent)',
+        color: 'var(--accent)',
         opacity: diffState ? 0.9 : 0.6,
         letterSpacing: '0.05em',
       }}>
@@ -106,37 +185,24 @@ function QueueCell({ value, index, isFront, isBack, onClick, diffState, blocked,
       </div>
 
       {/* Cell body */}
-      <motion.div
-        style={{
-          width: 'var(--cell-w)',
-          height: 'var(--cell-h)',
-          border: `1px solid ${cellBorder}`,
-          borderRadius: 'var(--radius-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 'var(--size-base)',
-          fontWeight: isNew ? 700 : 400,
-          color: cellColor,
-          background: cellBg,
-          boxShadow: interactive && !diffState
-            ? '0 0 14px rgba(0,255,200,0.10)'
-            : cellShadow,
-          transition: 'border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s',
-          userSelect: 'none',
-        }}
-      >
+      <motion.div style={{
+        width: 'var(--cell-w)', height: 'var(--cell-h)',
+        border: `1px solid ${cellBorder}`,
+        borderRadius: 'var(--radius-sm)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 'var(--size-base)', fontWeight: isNew ? 700 : 400,
+        color: cellColor, background: cellBg, boxShadow: cellShadow,
+        transition: 'border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s',
+        userSelect: 'none',
+      }}>
         {value}
       </motion.div>
 
       {/* Front / Back label */}
       <div style={{
-        fontSize: '0.6rem',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
+        fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
         color: isFront ? 'var(--accent)' : isBack ? 'var(--text-dim)' : 'transparent',
-        opacity: 0.7,
-        minHeight: 14,
+        opacity: 0.7, minHeight: 14,
       }}>
         {isFront ? 'front' : isBack ? 'back' : ''}
       </div>
@@ -156,10 +222,7 @@ function StaticQueueCell({ value, index, variant, isFront, isBack }) {
   const glow = isDanger ? '0 0 16px rgba(255,51,102,0.25)' : isInsert ? '0 0 16px rgba(0,255,200,0.25)' : 'none'
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-      position: 'relative',
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'relative' }}>
       <div style={{ fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-dim)', opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em' }}>
         {index}
       </div>
@@ -169,16 +232,11 @@ function StaticQueueCell({ value, index, variant, isFront, isBack }) {
         borderRadius: 'var(--radius-sm)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 'var(--size-base)', fontWeight: isTarget ? 700 : 400,
-        color, background: bg,
-        opacity: isTarget ? 1 : 0.5,
-        boxShadow: glow,
-        userSelect: 'none',
-        textDecoration: isDanger ? 'line-through' : 'none',
+        color, background: bg, opacity: isTarget ? 1 : 0.5, boxShadow: glow,
+        userSelect: 'none', textDecoration: isDanger ? 'line-through' : 'none',
       }}>
         {value}
       </div>
-
-      {/* Front / Back label */}
       <div style={{
         fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
         color: isFront ? 'var(--accent)' : isBack ? 'var(--text-dim)' : 'transparent',
@@ -186,24 +244,17 @@ function StaticQueueCell({ value, index, variant, isFront, isBack }) {
       }}>
         {isFront ? 'front' : isBack ? 'back' : ''}
       </div>
-
-      {/* Action badge */}
       {isTarget && (
         <div style={{
-          position: 'absolute',
-          top: -2,
-          right: -6,
-          width: 16, height: 16,
-          borderRadius: '50%',
+          position: 'absolute', top: -2, right: -6,
+          width: 16, height: 16, borderRadius: '50%',
           background: isDanger ? 'var(--danger)' : 'var(--accent)',
-          color: '#000',
-          fontSize: '0.6rem',
-          fontWeight: 900,
+          color: '#000', fontSize: '0.6rem', fontWeight: 900,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           lineHeight: 1,
           boxShadow: `0 0 8px ${isDanger ? 'rgba(255,51,102,0.5)' : 'rgba(0,255,200,0.5)'}`,
         }}>
-          {isDanger ? '×' : '+'}
+          {isDanger ? '\u00d7' : '+'}
         </div>
       )}
     </div>
@@ -216,27 +267,24 @@ let historyId = 0
 
 export default function QueueScene() {
   const [items, setItems] = useState(() => makeItems(INITIAL_NAMES))
+  const [popover, setPopover] = useState(null)
   const [history, setHistory] = useState([])
   const [snapshot, setSnapshot] = useState(null)
   const [highlightedIdx, setHighlightedIdx] = useState(null)
-  const [blockedMessage, setBlockedMessage] = useState(null)
   const [opsCount, setOpsCount] = useState(0)
 
   const insertPoolIdx = useRef(0)
   const highlightTimer = useRef(null)
-  const blockedTimer = useRef(null)
 
   const [tried, setTried] = useState({ any: false, count: 0 })
   const [lastOp, setLastOp] = useState(null)
 
   const clearTimers = useCallback(() => {
     if (highlightTimer.current) { clearTimeout(highlightTimer.current); highlightTimer.current = null }
-    if (blockedTimer.current) { clearTimeout(blockedTimer.current); blockedTimer.current = null }
   }, [])
 
   useEffect(() => clearTimers, [clearTimers])
 
-  /* ── Pick next insert name ── */
   const nextInsertName = useCallback(() => {
     const name = INSERT_NAMES[insertPoolIdx.current % INSERT_NAMES.length]
     insertPoolIdx.current += 1
@@ -246,9 +294,10 @@ export default function QueueScene() {
   /* ── Execute Dequeue ── */
   const executeDequeue = useCallback(() => {
     if (items.length === 0) return
-
     const label = items[0].value
+
     setSnapshot({ items: [...items], targetIndex: 0, action: 'Dequeue' })
+    setPopover(null)
     setHighlightedIdx(0)
 
     highlightTimer.current = setTimeout(() => {
@@ -266,6 +315,7 @@ export default function QueueScene() {
   const executeEnqueue = useCallback(() => {
     const name = nextInsertName()
     setSnapshot({ items: [...items], targetIndex: items.length, action: 'Enqueue' })
+    setPopover(null)
 
     const newItem = makeItem(name)
     setItems(prev => [...prev, newItem])
@@ -275,19 +325,16 @@ export default function QueueScene() {
     setLastOp({ action: 'Enqueue', label: name })
   }, [items, nextInsertName])
 
-  /* ── Cell click handler ── */
-  const handleCellClick = useCallback((index) => {
-    if (index === 0) {
-      setBlockedMessage(null)
-      executeDequeue()
-    } else {
-      // Show blocked nudge
-      const behind = index
-      setBlockedMessage(`That's behind ${behind} item${behind !== 1 ? 's' : ''}. Wait your turn.`)
-      if (blockedTimer.current) clearTimeout(blockedTimer.current)
-      blockedTimer.current = setTimeout(() => setBlockedMessage(null), 2000)
-    }
-  }, [executeDequeue])
+  /* ── Cell click \u2192 popover ── */
+  const handleCellClick = useCallback((index, event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    setPopover({
+      index,
+      value: items[index].value,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 8,
+    })
+  }, [items])
 
   /* ── Reset ── */
   const handleReset = useCallback(() => {
@@ -295,10 +342,10 @@ export default function QueueScene() {
     resetIds()
     insertPoolIdx.current = 0
     setItems(makeItems(INITIAL_NAMES))
+    setPopover(null)
     setHistory([])
     setSnapshot(null)
     setHighlightedIdx(null)
-    setBlockedMessage(null)
     setTried({ any: false, count: 0 })
     setLastOp(null)
     setOpsCount(0)
@@ -308,35 +355,23 @@ export default function QueueScene() {
   useEffect(() => {
     const handler = (e) => {
       if (e.target.tagName === 'INPUT') return
-      switch (e.key) {
-        case 'Escape':
-          setBlockedMessage(null)
-          break
-        case 'r':
-        case 'R':
-          handleReset()
-          break
-        default:
-          break
-      }
+      if (e.key === 'Escape') setPopover(null)
+      if (e.key === 'r' || e.key === 'R') handleReset()
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [handleReset])
 
   /* ── Derived state ── */
-
   const isEmpty = items.length === 0
   const promptCount = items.length || INITIAL_NAMES.length
   const nudge = getNudge(tried, lastOp)
-
-  /* ── Render ── */
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
       <Grid />
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{
         position: 'relative', zIndex: 1,
         padding: '24px var(--canvas-pad) 0',
@@ -344,75 +379,35 @@ export default function QueueScene() {
       }}>
         <div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
-            04 — Queue
+            04 \u2014 Queue
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
             A queue of {promptCount} items.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Front leaves first.</span>
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click any item. See what&apos;s possible.</span>
           </h2>
         </div>
-
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
-          <Counter
-            value={opsCount}
-            danger={false}
-            label="ops"
-          />
-          <StatusPill tone="accent">O(1) · always</StatusPill>
+          <Counter value={opsCount} danger={false} label="ops" />
+          <StatusPill tone="accent">O(1) \u00b7 always</StatusPill>
         </div>
       </div>
 
-      {/* ── Nudge ── */}
+      {/* Nudge */}
       {nudge && (
         <div style={{ position: 'relative', zIndex: 1, padding: '12px var(--canvas-pad) 0' }}>
-          <Explainer
-            eyebrow={nudge.eyebrow}
-            text={nudge.text}
-            detail={nudge.detail}
-            tone={nudge.tone}
-          />
+          <Explainer eyebrow={nudge.eyebrow} text={nudge.text} detail={nudge.detail} tone={nudge.tone} />
         </div>
       )}
 
-      {/* ── Blocked message ── */}
-      <AnimatePresence>
-        {blockedMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-            style={{
-              position: 'relative', zIndex: 1,
-              padding: '8px var(--canvas-pad) 0',
-              display: 'flex', justifyContent: 'center',
-            }}
-          >
-            <div style={{
-              padding: '6px 16px',
-              borderRadius: 'var(--radius-pill)',
-              background: 'rgba(255,51,102,0.08)',
-              border: '1px solid rgba(255,51,102,0.25)',
-              fontSize: 'var(--size-xs)',
-              color: 'var(--danger)',
-              letterSpacing: '0.02em',
-            }}>
-              {blockedMessage}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Canvas ── */}
+      {/* Canvas */}
       <div style={{
         position: 'relative', zIndex: 1, flex: 1,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: snapshot ? 'flex-start' : 'center',
-        padding: '16px var(--canvas-pad)',
-        overflow: 'auto',
+        padding: '16px var(--canvas-pad)', overflow: 'auto',
       }}>
         <>
-          {/* ── Before row (snapshot) ── */}
+          {/* Before row */}
           <AnimatePresence>
             {snapshot && (
               <motion.div
@@ -422,84 +417,67 @@ export default function QueueScene() {
                 transition={{ duration: 0.25 }}
                 style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}
               >
-                <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
-                  Before
-                </div>
+                <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>Before</div>
                 <div style={{ display: 'flex', gap: 'var(--cell-gap)', flexWrap: 'nowrap', alignItems: 'flex-start', justifyContent: 'center' }}>
                   {snapshot.items.map((item, i) => {
                     const isTarget = i === snapshot.targetIndex
                     return (
-                      <StaticQueueCell
-                        key={item.id}
-                        value={item.value}
-                        index={i}
+                      <StaticQueueCell key={item.id} value={item.value} index={i}
                         variant={isTarget ? (snapshot.action === 'Dequeue' ? 'danger' : 'insert') : null}
-                        isFront={i === 0}
-                        isBack={i === snapshot.items.length - 1}
-                      />
+                        isFront={i === 0} isBack={i === snapshot.items.length - 1} />
                     )
                   })}
                 </div>
-
-                {/* Connector line between before/after */}
-                <div style={{
-                  width: 1, height: 16,
-                  borderLeft: '1px dashed var(--border)',
-                }} />
-
-                <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
-                  After
-                </div>
+                <div style={{ width: 1, height: 16, borderLeft: '1px dashed var(--border)' }} />
+                <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>After</div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ── Live queue ── */}
+          {/* Live queue */}
           <div style={{ display: 'flex', gap: 'var(--cell-gap)', flexWrap: 'nowrap', alignItems: 'flex-end', position: 'relative' }}>
             <AnimatePresence mode="popLayout">
               {items.map((item, index) => {
                 let diffState = null
                 if (snapshot) {
                   const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
-                  if (prevIndex === -1) {
-                    diffState = 'new'
-                  } else if (prevIndex === index) {
-                    diffState = 'same'
-                  } else {
-                    diffState = 'shifted'
-                  }
+                  if (prevIndex === -1) diffState = 'new'
+                  else if (prevIndex === index) diffState = 'same'
+                  else diffState = 'shifted'
                 }
-
                 return (
-                  <QueueCell
-                    key={item.id}
-                    value={item.value}
-                    index={index}
-                    isFront={index === 0}
-                    isBack={index === items.length - 1}
-                    highlighted={highlightedIdx === index}
-                    diffState={diffState}
-                    blocked={index !== 0}
-                    onClick={() => handleCellClick(index)}
-                  />
+                  <QueueCell key={item.id} value={item.value} index={index}
+                    isFront={index === 0} isBack={index === items.length - 1}
+                    highlighted={highlightedIdx === index} diffState={diffState}
+                    onClick={(e) => handleCellClick(index, e)} />
                 )
               })}
             </AnimatePresence>
           </div>
 
+          {/* Popover */}
+          <AnimatePresence>
+            {popover && (
+              <QueuePopover
+                isFront={popover.index === 0}
+                position={{ x: popover.x, y: popover.y }}
+                value={popover.value}
+                behindCount={popover.index}
+                onDequeue={executeDequeue}
+                onEnqueue={executeEnqueue}
+                onClose={() => setPopover(null)}
+              />
+            )}
+          </AnimatePresence>
+
           {/* Empty state */}
           {isEmpty && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               style={{
-                padding: '24px 40px',
-                border: '1px dashed var(--border)',
-                borderRadius: 'var(--radius-lg)',
+                padding: '24px 40px', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
                 color: 'var(--text-dim)', fontSize: 'var(--size-sm)',
-              }}
-            >
+              }}>
               <span>Queue is empty</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <CtrlButton label="Reset" small onClick={handleReset} shortcut="R" />
@@ -509,7 +487,6 @@ export default function QueueScene() {
           )}
         </>
 
-        {/* History below the queue */}
         {history.length > 0 && (
           <div style={{ marginTop: 24, width: '100%', display: 'flex', justifyContent: 'center' }}>
             <OperationHistory history={history} />
@@ -517,10 +494,9 @@ export default function QueueScene() {
         )}
       </div>
 
-      {/* ── Controls ── */}
+      {/* Controls */}
       <div style={{
-        position: 'relative', zIndex: 1,
-        borderTop: '1px solid var(--border)',
+        position: 'relative', zIndex: 1, borderTop: '1px solid var(--border)',
         padding: '12px var(--canvas-pad) 16px',
         display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
         background: 'linear-gradient(180deg, rgba(10,10,15,0), rgba(10,10,15,0.25))',
