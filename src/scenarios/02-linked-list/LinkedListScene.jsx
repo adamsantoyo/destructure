@@ -599,7 +599,6 @@ export default function LinkedListScene() {
             <div style={{
               display: 'flex', alignItems: 'center', marginLeft: 4,
               position: 'absolute', right: 'var(--canvas-pad)', top: '50%', transform: 'translateY(-50%)',
-              opacity: 0,
             }}>
               <Arrow highlighted={false} />
               <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', opacity: 0.5, fontStyle: 'italic' }}>null</span>

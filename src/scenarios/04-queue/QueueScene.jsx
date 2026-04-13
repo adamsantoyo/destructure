@@ -145,7 +145,13 @@ function QueueCell({ value, index, isFront, isBack, onClick, diffState, highligh
   let cellBg = highlighted ? 'rgba(0,255,200,0.06)' : 'transparent'
   let cellShadow = highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none'
 
-  if (isNew) {
+  const isShifted = diffState === 'shifted'
+
+  if (isShifted) {
+    cellBorder = 'rgba(255,51,102,0.5)'
+    cellColor = 'var(--danger)'
+    cellBg = 'rgba(255,51,102,0.06)'
+  } else if (isNew) {
     cellBorder = 'rgba(0,255,200,0.6)'
     cellColor = 'var(--accent)'
     cellBg = 'rgba(0,255,200,0.10)'
