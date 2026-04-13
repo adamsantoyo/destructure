@@ -4,6 +4,7 @@ import LinkedListScene from './scenarios/02-linked-list/LinkedListScene'
 import StackScene from './scenarios/03-stack/StackScene'
 import QueueScene from './scenarios/04-queue/QueueScene'
 import HashTableScene from './scenarios/05-hash-table/HashTableScene'
+import BSTScene from './scenarios/06-bst/BSTScene'
 
 const SCENARIOS = [
   { id: '01', label: 'Array',        Scene: ArrayScene,       ready: true  },
@@ -11,7 +12,7 @@ const SCENARIOS = [
   { id: '03', label: 'Stack',        Scene: StackScene,       ready: true  },
   { id: '04', label: 'Queue',        Scene: QueueScene,       ready: true  },
   { id: '05', label: 'Hash Table',   Scene: HashTableScene,   ready: true  },
-  { id: '06', label: 'BST',          Scene: null,             ready: false },
+  { id: '06', label: 'BST',          Scene: BSTScene,         ready: true  },
 ]
 
 function ComingSoon({ label }) {

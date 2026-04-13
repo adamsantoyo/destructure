@@ -66,32 +66,25 @@ function Arrow({ highlighted }) {
 /* ── ListNode ── */
 
 function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onClick, highlighted, diffState }) {
-  // Diff coloring for the After row: green = same, red = changed
-  const isShifted = diffState === 'shifted'
-  const isNew     = diffState === 'new'
-  const isUnchanged = diffState === 'same'
+  const isNew = diffState === 'new'
+  const isRewired = diffState === 'rewired'
+  const isPromotedHead = diffState === 'promoted-head'
 
   let nodeBorder = highlighted ? 'var(--accent)' : 'var(--border)'
   let nodeColor  = highlighted ? 'var(--accent)' : 'var(--text)'
   let nodeBg     = highlighted ? 'rgba(0,255,200,0.06)' : 'transparent'
   let nodeShadow = highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none'
 
-  if (isShifted) {
-    // In linked list, "shifted" means the node's position changed (rare — only on insert/delete of others)
-    nodeBorder = 'rgba(255,51,102,0.5)'
-    nodeColor  = 'var(--danger)'
-    nodeBg     = 'rgba(255,51,102,0.06)'
-    nodeShadow = 'none'
-  } else if (isNew) {
-    nodeBorder = 'rgba(255,51,102,0.6)'
-    nodeColor  = 'var(--danger)'
-    nodeBg     = 'rgba(255,51,102,0.10)'
-    nodeShadow = '0 0 12px rgba(255,51,102,0.2)'
-  } else if (isUnchanged) {
+  if (isNew) {
+    nodeBorder = 'rgba(0,255,200,0.6)'
+    nodeColor  = 'var(--accent)'
+    nodeBg     = 'rgba(0,255,200,0.10)'
+    nodeShadow = '0 0 12px rgba(0,255,200,0.2)'
+  } else if (isRewired || isPromotedHead) {
     nodeBorder = 'rgba(0,255,200,0.4)'
     nodeColor  = 'var(--accent)'
     nodeBg     = 'rgba(0,255,200,0.06)'
-    nodeShadow = 'none'
+    nodeShadow = '0 0 10px rgba(0,255,200,0.12)'
   }
 
   return (
@@ -123,7 +116,7 @@ function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onCl
       {/* Index label */}
       <div style={{
         fontSize: 'var(--size-xs)',
-        color: isShifted || isNew ? 'var(--danger)' : isUnchanged ? 'var(--accent)' : 'var(--accent)',
+        color: 'var(--accent)',
         opacity: diffState ? 0.9 : 0.6,
         letterSpacing: '0.05em',
       }}>
@@ -305,7 +298,7 @@ export default function LinkedListScene() {
       setItems(prev => prev.filter((_, i) => i !== index))
 
       startTraverse(index, cost, () => {
-        setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, index, cost }])
+        setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${index}` }])
       })
     }, removeDelay)
 
@@ -341,7 +334,7 @@ export default function LinkedListScene() {
     })
 
     startTraverse(index, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, index, cost }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${index}` }])
     })
     setHighlightedIdx(index)
 
@@ -366,7 +359,7 @@ export default function LinkedListScene() {
     })
 
     startTraverse(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, index: insertIdx, cost }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${insertIdx}` }])
     })
     setHighlightedIdx(insertIdx)
 
@@ -387,7 +380,7 @@ export default function LinkedListScene() {
     setHighlightedIdx(insertIdx)
 
     startTraverse(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, index: insertIdx, cost }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${insertIdx}` }])
       setHighlightedIdx(null)
     })
 
@@ -547,12 +540,28 @@ export default function LinkedListScene() {
                 let diffState = null
                 if (snapshot) {
                   const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
-                  if (prevIndex === -1) diffState = 'new'
-                  else if (prevIndex === index) diffState = 'same'
-                  else diffState = 'shifted'
+                  if (snapshot.action === 'Insert') {
+                    if (prevIndex === -1) diffState = 'new'
+                    else if (snapshot.targetIndex > 0 && index === snapshot.targetIndex - 1) diffState = 'rewired'
+                  } else if (snapshot.action === 'Delete') {
+                    if (snapshot.targetIndex === 0) {
+                      if (index === 0 && prevIndex === 1) diffState = 'promoted-head'
+                    } else if (index === snapshot.targetIndex - 1) {
+                      diffState = 'rewired'
+                    }
+                  }
                 }
 
                 const isTraversed = traversing && traverseTarget != null && index < traverseTarget
+                const isRelinkedArrow = snapshot
+                  ? snapshot.action === 'Insert'
+                    ? snapshot.targetIndex === 0
+                      ? index === 0
+                      : index === snapshot.targetIndex - 1 || index === snapshot.targetIndex
+                    : snapshot.action === 'Delete'
+                      ? snapshot.targetIndex > 0 && index === snapshot.targetIndex - 1
+                      : false
+                  : false
 
                 return (
                   <div key={item.id} style={{ display: 'flex', alignItems: 'center' }}>
@@ -568,7 +577,7 @@ export default function LinkedListScene() {
                       onClick={(e) => handleNodeClick(index, e)}
                     />
                     {index < items.length - 1 && (
-                      <Arrow highlighted={isTraversed || (traversing && index === traverseTarget - 1)} />
+                      <Arrow highlighted={isTraversed || (traversing && index === traverseTarget - 1) || isRelinkedArrow} />
                     )}
                   </div>
                 )

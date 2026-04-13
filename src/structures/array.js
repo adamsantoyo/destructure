@@ -6,7 +6,8 @@
  * Types: 'highlight' | 'shift' | 'remove' | 'insert' | 'done' | 'info'
  *
  * Each shift is its own step so the scene can animate them one-by-one
- * and the counter climbs visibly. You feel the cost.
+ * and the counter climbs visibly. In this module, `ops` means extra shifts,
+ * not generic action count.
  */
 
 /* ── Pure cost calculators (no steps, no animation) ── */
@@ -66,7 +67,7 @@ export function deleteFirst(arr) {
     ops: totalShifts,
     explanation: totalShifts === 0
       ? 'Done. That was the only element. O(1).'
-      : `Done. Deleting from the front cost ${totalShifts} operation${totalShifts !== 1 ? 's' : ''} — one per element that had to shift. This is O(n): the bigger the array, the more it costs.`,
+      : `Done. Deleting from the front cost ${totalShifts} shift${totalShifts !== 1 ? 's' : ''} — one per element that had to move. This is O(n): the bigger the array, the more it costs.`,
   })
 
   return steps
@@ -89,12 +90,12 @@ export function deleteLast(arr) {
       type: 'remove',
       index: arr.length - 1,
       explanation: 'Gone. Nothing behind it needed to move.',
-      ops: 1,
+      ops: 0,
     },
     {
       type: 'done',
-      ops: 1,
-      explanation: 'Done. Deleting from the end always costs exactly 1 operation — nothing shifts. This is O(1): instant, no matter how big the array.',
+      ops: 0,
+      explanation: 'Done. Deleting from the end adds no extra shifts. This is O(1): instant, no matter how big the array.',
     },
   ]
 }
@@ -142,7 +143,7 @@ export function deleteAtIndex(arr, index) {
   steps.push({
     type: 'done',
     ops: totalShifts,
-    explanation: `Done. ${totalShifts} operation${totalShifts !== 1 ? 's' : ''}. The closer to the front you delete, the more it costs. O(n) worst case.`,
+    explanation: `Done. ${totalShifts} shift${totalShifts !== 1 ? 's' : ''}. The closer to the front you delete, the more it costs. O(n) worst case.`,
   })
 
   return steps
@@ -187,7 +188,7 @@ export function insertFirst(arr, value) {
     ops: totalShifts,
     explanation: totalShifts === 0
       ? 'Done. Empty array — no shifts. O(1).'
-      : `Done. Inserting at the front cost ${totalShifts} operation${totalShifts !== 1 ? 's' : ''}. Same problem as deleting from the front — everything has to move. O(n).`,
+      : `Done. Inserting at the front cost ${totalShifts} shift${totalShifts !== 1 ? 's' : ''}. Same problem as deleting from the front — everything has to move. O(n).`,
   })
 
   return steps
@@ -200,12 +201,12 @@ export function insertLast(arr, value) {
       value,
       index: arr.length,
       explanation: `"${value}" goes straight into position ${arr.length}. Nothing else moves.`,
-      ops: 1,
+      ops: 0,
     },
     {
       type: 'done',
-      ops: 1,
-      explanation: 'Done. Inserting at the end always costs 1 operation. O(1).',
+      ops: 0,
+      explanation: 'Done. Inserting at the end adds no extra shifts. O(1).',
     },
   ]
 }
@@ -250,7 +251,7 @@ export function insertAtIndex(arr, index, value) {
   steps.push({
     type: 'done',
     ops: totalShifts,
-    explanation: `Done. ${totalShifts} operation${totalShifts !== 1 ? 's' : ''}. The closer to the front, the more it costs. O(n) worst case.`,
+    explanation: `Done. ${totalShifts} shift${totalShifts !== 1 ? 's' : ''}. The closer to the front, the more it costs. O(n) worst case.`,
   })
 
   return steps

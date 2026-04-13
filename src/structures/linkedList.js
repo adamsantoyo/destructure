@@ -8,13 +8,18 @@
  * Key difference from Array: no shifting. Deleting/inserting only
  * costs pointer changes — O(1) for the operation itself.
  * The cost is *finding* the node: O(n) traversal.
+ *
+ * Teaching metric note:
+ * This module counts traversal using the scene's learner-facing "steps"
+ * convention rather than low-level pointer writes. The goal is to expose
+ * how far you have to walk from the head before you can act.
  */
 
 /* ── Pure cost calculators (no steps, no animation) ── */
 
 /**
- * Delete cost = number of traversal steps to reach the node.
- * The delete itself is O(1) pointer rewiring.
+ * Delete cost = learner-facing traversal steps needed to bring the target
+ * node into focus. Deleting the head costs 0 because you begin there.
  */
 export function getDeleteCost(length, index) {
   if (index < 0 || index >= length) return 0
@@ -22,7 +27,8 @@ export function getDeleteCost(length, index) {
 }
 
 /**
- * Insert cost = number of traversal steps to reach the insertion point.
+ * Insert cost = learner-facing traversal steps needed to reach the
+ * insertion point. Appending counts walking through every existing node.
  * The insert itself is O(1) pointer rewiring.
  */
 export function getInsertCost(length, index) {

@@ -1,7 +1,7 @@
 /**
  * Hash Table — pure logic.
  * Open addressing with linear probing. Fixed-size bucket array.
- * Cost = number of probes (bucket slots examined).
+ * Cost = extra probes beyond the home bucket (0 = direct hit).
  *
  * Tombstones (DELETED markers) preserve probe chains after deletion.
  */
@@ -19,17 +19,16 @@ export function hash(key, size = TABLE_SIZE) {
   return ((h % size) + size) % size
 }
 
-/* ── Cost calculators (probe count) ── */
+/* ── Cost calculators (extra probes beyond home bucket) ── */
 
-export function getInsertCost(buckets) {
-  let probes = 0
-  for (let i = 0; i < buckets.length; i++) {
-    if (buckets[i] !== null && buckets[i] !== DELETED) probes++
-    else break
-  }
-  // If every slot checked and none free → can't insert
-  if (probes === buckets.length) return probes
-  return probes
+export function getInsertCost(buckets, key, size = TABLE_SIZE) {
+  return findInsertSlot(buckets, key, size).probes
+}
+
+export function getInsertPreview(buckets, key, size = TABLE_SIZE) {
+  const home = hash(key, size)
+  const { index, probes } = findInsertSlot(buckets, key, size)
+  return { home, index, probes, full: index === -1 }
 }
 
 /**
@@ -45,6 +44,10 @@ export function getLookupCost(buckets, key, size = TABLE_SIZE) {
     if (slot !== DELETED && slot.key === key) return p  // found
   }
   return size // wrapped fully, not found
+}
+
+export function getDeleteCost(buckets, key, size = TABLE_SIZE) {
+  return getLookupCost(buckets, key, size)
 }
 
 /**

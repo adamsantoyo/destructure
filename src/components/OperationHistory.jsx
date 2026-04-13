@@ -1,7 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
 
+const REMOVAL_ACTIONS = new Set(['Delete', 'Pop', 'Dequeue'])
+
 function HistoryRow({ item }) {
   const isExpensive = item.cost > 1
+  const costLabel = item.costText
+    || (item.cost === 0 ? 'O(1)' : `${item.cost} ${item.unit || 'op'}${item.cost !== 1 ? 's' : ''}`)
   return (
     <motion.div
       initial={{ opacity: 0, x: -8 }}
@@ -18,20 +22,20 @@ function HistoryRow({ item }) {
       }}
     >
       <span style={{
-        color: (item.action === 'Delete' || item.action === 'Pop' || item.action === 'Dequeue') ? 'var(--danger)' : 'var(--accent)',
+        color: REMOVAL_ACTIONS.has(item.action) ? 'var(--danger)' : 'var(--accent)',
         minWidth: 48,
         fontWeight: 700,
       }}>
         {item.action}
       </span>
       <span style={{ color: 'var(--text)', minWidth: 36 }}>"{item.label}"</span>
-      {item.index != null && <span>at index {item.index}</span>}
+      {item.location != null && <span>{item.location}</span>}
       <span style={{
         marginLeft: 'auto',
         color: isExpensive ? 'var(--danger)' : 'var(--accent)',
         fontWeight: 700,
       }}>
-        {item.cost === 0 ? 'O(1)' : `${item.cost} ${item.unit || 'shift'}${item.cost !== 1 ? 's' : ''}`}
+        {costLabel}
       </span>
     </motion.div>
   )

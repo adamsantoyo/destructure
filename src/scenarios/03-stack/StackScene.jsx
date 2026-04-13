@@ -6,6 +6,7 @@ import Explainer from '../../components/Explainer'
 import CtrlButton from '../../components/CtrlButton'
 import StatusPill from '../../components/StatusPill'
 import OperationHistory from '../../components/OperationHistory'
+import { getPopCost, getPushCost } from '../../structures/stack'
 
 /* ── Constants ─────────────────────────────────── */
 
@@ -143,28 +144,24 @@ function StackPopover({ isTop, depth, value, position, onPop, onPush, onClose })
 /* ── StackCell ── */
 
 function StackCell({ value, depth, isTop, onClick, diffState, highlighted }) {
-  const isShifted = diffState === 'shifted'
-  const isNew     = diffState === 'new'
-  const isUnchanged = diffState === 'same'
+  const isNew = diffState === 'new'
+  const isPromotedTop = diffState === 'promoted-top'
 
   let cellBorder = highlighted ? 'var(--accent)' : 'var(--border)'
   let cellColor  = highlighted ? 'var(--accent)' : 'var(--text)'
   let cellBg     = highlighted ? 'rgba(0,255,200,0.06)' : 'transparent'
   let cellShadow = highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none'
 
-  if (isShifted) {
-    cellBorder = 'rgba(255,51,102,0.5)'
-    cellColor  = 'var(--danger)'
-    cellBg     = 'rgba(255,51,102,0.06)'
-  } else if (isNew) {
+  if (isNew) {
     cellBorder = 'rgba(0,255,200,0.6)'
     cellColor  = 'var(--accent)'
     cellBg     = 'rgba(0,255,200,0.10)'
     cellShadow = '0 0 12px rgba(0,255,200,0.2)'
-  } else if (isUnchanged) {
+  } else if (isPromotedTop) {
     cellBorder = 'rgba(0,255,200,0.4)'
     cellColor  = 'var(--accent)'
     cellBg     = 'rgba(0,255,200,0.06)'
+    cellShadow = '0 0 10px rgba(0,255,200,0.12)'
   }
 
   return (
@@ -223,7 +220,7 @@ function StackCell({ value, depth, isTop, onClick, diffState, highlighted }) {
 
 /* ── StaticStackCell (for before snapshot) ── */
 
-function StaticStackCell({ value, depth, variant }) {
+function StaticStackCell({ value, depth, variant, ghost = false, roleLabel = '', depthLabel = depth }) {
   const isDanger = variant === 'danger'
   const isInsert = variant === 'insert'
   const isTarget = isDanger || isInsert
@@ -239,18 +236,25 @@ function StaticStackCell({ value, depth, variant }) {
         opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em',
         width: 16, textAlign: 'right', flexShrink: 0,
       }}>
-        {depth}
+        {depthLabel}
       </div>
       <div style={{
         width: 'var(--cell-w)', height: 'var(--cell-h)',
-        border: `${isTarget ? '2px' : '1px'} solid ${borderClr}`,
+        border: `${isTarget ? '2px' : '1px'} ${ghost ? 'dashed' : 'solid'} ${borderClr}`,
         borderRadius: 'var(--radius-sm)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 'var(--size-base)', fontWeight: isTarget ? 700 : 400,
         color, background: bg, opacity: isTarget ? 1 : 0.5, boxShadow: glow,
         userSelect: 'none', textDecoration: isDanger ? 'line-through' : 'none',
       }}>
-        {value}
+        {ghost ? '' : value}
+      </div>
+      <div style={{
+        fontSize: '0.6rem', color: roleLabel ? 'var(--accent)' : 'transparent',
+        letterSpacing: '0.1em', textTransform: 'uppercase', opacity: roleLabel ? 0.5 : 0,
+        minWidth: 56, flexShrink: 0,
+      }}>
+        {roleLabel}
       </div>
       {isTarget && (
         <div style={{
@@ -286,7 +290,6 @@ export default function StackScene() {
 
   const [tried, setTried] = useState({ any: false, popped: false, pushed: false, count: 0 })
   const [lastOp, setLastOp] = useState(null)
-  const [opsCount, setOpsCount] = useState(0)
 
   const nextInsertName = useCallback(() => {
     const name = INSERT_NAMES[insertPoolIdx.current % INSERT_NAMES.length]
@@ -299,6 +302,7 @@ export default function StackScene() {
     if (items.length === 0) return
     const topItem = items[items.length - 1]
     const label = topItem.value
+    const cost = getPopCost(items.length)
 
     setSnapshot({ items: [...items], targetIndex: items.length - 1, action: 'Pop' })
     setPopover(null)
@@ -307,10 +311,9 @@ export default function StackScene() {
     setTimeout(() => {
       setHighlightedIdx(null)
       setItems(prev => prev.slice(0, -1))
-      setHistory(prev => [...prev, { id: historyId++, action: 'Pop', label, cost: 0 }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Pop', label, cost, costText: 'O(1) · top' }])
     }, 150)
 
-    setOpsCount(prev => prev + 1)
     setTried(prev => ({ ...prev, any: true, popped: true, count: prev.count + 1 }))
     setLastOp({ action: 'Pop', label })
   }, [items])
@@ -318,6 +321,7 @@ export default function StackScene() {
   /* ── Execute Push ── */
   const executePush = useCallback(() => {
     const name = nextInsertName()
+    const cost = getPushCost()
     setSnapshot({ items: [...items], targetIndex: items.length, action: 'Push' })
     setPopover(null)
 
@@ -326,8 +330,7 @@ export default function StackScene() {
     setHighlightedIdx(items.length)
     setTimeout(() => setHighlightedIdx(null), 400)
 
-    setHistory(prev => [...prev, { id: historyId++, action: 'Push', label: name, cost: 0 }])
-    setOpsCount(prev => prev + 1)
+    setHistory(prev => [...prev, { id: historyId++, action: 'Push', label: name, cost, costText: 'O(1) · top' }])
     setTried(prev => ({ ...prev, any: true, pushed: true, count: prev.count + 1 }))
     setLastOp({ action: 'Push', label: name })
   }, [items, nextInsertName])
@@ -343,7 +346,6 @@ export default function StackScene() {
     setHighlightedIdx(null)
     setTried({ any: false, popped: false, pushed: false, count: 0 })
     setLastOp(null)
-    setOpsCount(0)
   }, [])
 
   /* ── Cell click → popover ── */
@@ -373,6 +375,8 @@ export default function StackScene() {
   const isEmpty = items.length === 0
   const nudge = getNudge(tried, lastOp)
   const displayItems = [...items].reverse()
+  const buriedCount = Math.max(0, items.length - 1)
+  const statusText = lastOp ? 'direct top access · O(1)' : 'top-only access · O(1)'
 
   return (
     <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
@@ -394,8 +398,8 @@ export default function StackScene() {
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
-          <Counter value={opsCount} label="ops" />
-          <StatusPill tone="accent">O(1) · always</StatusPill>
+          <Counter value={buriedCount} label="buried" />
+          <StatusPill tone="accent">{statusText}</StatusPill>
         </div>
       </div>
 
@@ -423,6 +427,17 @@ export default function StackScene() {
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
             >
               <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6, marginBottom: 4 }}>Before</div>
+              {snapshot.action === 'Push' && (
+                <StaticStackCell
+                  key="push-slot"
+                  value=""
+                  depth={0}
+                  depthLabel=""
+                  variant="insert"
+                  ghost
+                  roleLabel="next top"
+                />
+              )}
               {[...snapshot.items].reverse().map((item, displayIdx) => {
                 const arrayIdx = snapshot.items.length - 1 - displayIdx
                 const isTarget = arrayIdx === snapshot.targetIndex
@@ -448,9 +463,12 @@ export default function StackScene() {
                     let diffState = null
                     if (snapshot) {
                       const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
-                      if (prevIndex === -1) diffState = 'new'
-                      else if (prevIndex === arrayIdx) diffState = 'same'
-                      else diffState = 'shifted'
+                      if (snapshot.action === 'Push') {
+                        if (prevIndex === -1) diffState = 'new'
+                      } else if (snapshot.action === 'Pop' && prevIndex !== -1) {
+                        const prevDepth = snapshot.items.length - 1 - prevIndex
+                        if (displayIdx === 0 && prevDepth === 1) diffState = 'promoted-top'
+                      }
                     }
                     return (
                       <StackCell key={item.id} value={item.value} depth={displayIdx} isTop={isTop}

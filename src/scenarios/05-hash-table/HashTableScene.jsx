@@ -8,7 +8,7 @@ import StatusPill from '../../components/StatusPill'
 import OperationHistory from '../../components/OperationHistory'
 import {
   TABLE_SIZE, DELETED,
-  hash, findInsertSlot, probePath, getLookupCost,
+  hash, findInsertSlot, probePath, getInsertPreview, getLookupCost,
 } from '../../structures/hashTable'
 
 /* ── Constants ─────────────────────────────────── */
@@ -27,6 +27,7 @@ const INSERT_POOL = ['Ash', 'Rune', 'Flux', 'Dew', 'Coda', 'Wren', 'Lux', 'Byte'
 let nextId = 0
 function makeEntry(key) { return { id: nextId++, key, value: key, home: hash(key) } }
 function resetIds() { nextId = 0 }
+function peekNextInsertName(insertPoolIdx) { return INSERT_POOL[insertPoolIdx.current % INSERT_POOL.length] }
 
 function buildInitialBuckets() {
   const b = Array(TABLE_SIZE).fill(null)
@@ -41,7 +42,7 @@ function buildInitialBuckets() {
 
 function getNudge(tried, lastOp, lastProbes) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Hash Table', text: 'Click any bucket to see what you can do.', detail: 'Items are placed by a hash function. Click to explore.' }
+    return { tone: 'neutral', eyebrow: 'Hash Table', text: 'Click a bucket to inspect it, or preview where the next key will land.', detail: 'Keys hash to a home bucket. Collisions force linear probing.' }
   }
   if (tried.count === 1 && lastOp) {
     if (lastProbes === 0) {
@@ -90,10 +91,12 @@ function PopoverButton({ label, subtitle, cost, costUnit, danger, onClick }) {
 
 /* ── HashTablePopover ── */
 
-function HashTablePopover({ bucketIndex, slot, position, isFull, onInsert, onDelete, onLookup, onClose, lookupCost }) {
+function HashTablePopover({ bucketIndex, slot, position, isFull, nextInsertKey, insertPreview, onInsert, onDelete, onLookup, onClose, lookupCost }) {
   const occupied = slot !== null && slot !== DELETED
   const tombstone = slot === DELETED
   const empty = slot === null || tombstone
+  const isInsertTarget = empty && !isFull && insertPreview.index === bucketIndex
+  const isHomeBucket = empty && !isFull && insertPreview.home === bucketIndex
 
   return (
     <>
@@ -137,11 +140,50 @@ function HashTablePopover({ bucketIndex, slot, position, isFull, onInsert, onDel
 
         {occupied ? (
           <>
-            <PopoverButton label="Delete" subtitle="Remove from table" cost={lookupCost} costUnit="probe" danger onClick={onDelete} />
-            <PopoverButton label="Lookup" subtitle="Find this item" cost={lookupCost} costUnit="probe" danger={false} onClick={onLookup} />
+            <PopoverButton label="Delete" subtitle="Remove from table" cost={lookupCost} costUnit="extra probe" danger onClick={onDelete} />
+            <PopoverButton label="Lookup" subtitle="Find this item" cost={lookupCost} costUnit="extra probe" danger={false} onClick={onLookup} />
           </>
         ) : empty && !isFull ? (
-          <PopoverButton label="Insert" subtitle="Add new item here" cost={0} costUnit="probe" danger={false} onClick={onInsert} />
+          <>
+            <div style={{
+              padding: '8px 12px 10px',
+              fontSize: '0.72rem',
+              color: 'var(--text-dim)',
+              lineHeight: 1.5,
+            }}>
+              <div style={{ color: 'var(--text)', fontWeight: 700, marginBottom: 4 }}>
+                {`Next key: "${nextInsertKey}"`}
+              </div>
+              <div>
+                home {insertPreview.home}
+                {insertPreview.index === insertPreview.home
+                  ? ' -> lands here.'
+                  : ` -> lands in bucket ${insertPreview.index} after ${insertPreview.probes} extra probe${insertPreview.probes !== 1 ? 's' : ''}.`}
+              </div>
+            </div>
+
+            {isInsertTarget ? (
+              <PopoverButton
+                label={`Insert "${nextInsertKey}"`}
+                subtitle={insertPreview.probes === 0 ? 'Hash next key into this bucket' : 'Linear probing ends here'}
+                cost={insertPreview.probes}
+                costUnit="extra probe"
+                danger={insertPreview.probes > 0}
+                onClick={onInsert}
+              />
+            ) : (
+              <div style={{ padding: '10px 12px', fontSize: '0.78rem', color: 'var(--danger)', lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                  {isHomeBucket ? 'Collision here' : 'Not this bucket'}
+                </div>
+                <div style={{ color: 'var(--text-dim)', fontWeight: 300 }}>
+                  {isHomeBucket
+                    ? `This key starts here, but this bucket is occupied, so probing continues to bucket ${insertPreview.index}.`
+                    : `This key will not land here. It hashes to bucket ${insertPreview.home} and ends up in bucket ${insertPreview.index}.`}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <div style={{ padding: '10px 12px', fontSize: '0.78rem', color: 'var(--danger)', lineHeight: 1.5 }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>Table full</div>
@@ -316,7 +358,6 @@ export default function HashTableScene() {
   const [snapshot, setSnapshot] = useState(null)
   const [highlightedIdx, setHighlightedIdx] = useState(null)
   const [probingIndices, setProbingIndices] = useState([])
-  const [opsCount, setOpsCount] = useState(0)
   const [lastProbes, setLastProbes] = useState(0)
 
   const insertPoolIdx = useRef(0)
@@ -336,6 +377,8 @@ export default function HashTableScene() {
     insertPoolIdx.current += 1
     return name
   }, [])
+  const nextInsertKey = peekNextInsertName(insertPoolIdx)
+  const insertPreview = getInsertPreview(buckets, nextInsertKey)
 
   /* ── Count occupied slots ── */
   const occupiedCount = buckets.filter(s => s !== null && s !== DELETED).length
@@ -344,8 +387,7 @@ export default function HashTableScene() {
   /* ── Execute Insert ── */
   const executeInsert = useCallback(() => {
     const name = nextInsertName()
-    const homeIdx = hash(name)
-    const { index: targetIdx, probes } = findInsertSlot(buckets, name)
+    const { home: homeIdx, index: targetIdx, probes } = getInsertPreview(buckets, name)
     if (targetIdx === -1) return // table full
 
     setSnapshot({ buckets: [...buckets], targetIndex: targetIdx, action: 'Insert' })
@@ -378,8 +420,7 @@ export default function HashTableScene() {
       setTimeout(() => setHighlightedIdx(null), 400)
     }
 
-    setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost: probes, unit: 'probe' }])
-    setOpsCount(prev => prev + 1)
+    setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost: probes, costText: probes === 0 ? 'O(1) · home' : `${probes} extra probe${probes !== 1 ? 's' : ''}` }])
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', label: name })
   }, [buckets, nextInsertName])
@@ -405,8 +446,7 @@ export default function HashTableScene() {
       })
     }, 150)
 
-    setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, cost: probes, unit: 'probe' }])
-    setOpsCount(prev => prev + 1)
+    setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, cost: probes, costText: probes === 0 ? 'O(1) · home' : `${probes} extra probe${probes !== 1 ? 's' : ''}` }])
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Delete', label })
   }, [buckets])
@@ -435,8 +475,7 @@ export default function HashTableScene() {
       setTimeout(() => setHighlightedIdx(null), 600)
     }
 
-    setHistory(prev => [...prev, { id: historyId++, action: 'Lookup', label, cost: probes, unit: 'probe' }])
-    setOpsCount(prev => prev + 1)
+    setHistory(prev => [...prev, { id: historyId++, action: 'Lookup', label, cost: probes, costText: probes === 0 ? 'O(1) · home' : `${probes} extra probe${probes !== 1 ? 's' : ''}` }])
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Lookup', label })
   }, [buckets])
@@ -469,7 +508,6 @@ export default function HashTableScene() {
     setProbingIndices([])
     setTried({ any: false, count: 0 })
     setLastOp(null)
-    setOpsCount(0)
     setLastProbes(0)
   }, [clearTimers])
 
@@ -486,7 +524,14 @@ export default function HashTableScene() {
 
   /* ── Derived state ── */
   const nudge = getNudge(tried, lastOp, lastProbes)
-  const hasCollisions = lastProbes > 0
+  const hasExtraProbes = lastProbes > 0
+  const isDegrading = hasExtraProbes && (lastProbes >= 3 || occupiedCount >= TABLE_SIZE - 1)
+  const statusTone = !hasExtraProbes ? 'accent' : isDegrading ? 'danger' : 'neutral'
+  const statusText = !hasExtraProbes
+    ? 'direct hit · O(1) avg'
+    : isDegrading
+      ? `${lastProbes} extra probe${lastProbes !== 1 ? 's' : ''} · degrading toward O(n)`
+      : `${lastProbes} extra probe${lastProbes !== 1 ? 's' : ''} · still O(1) avg`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
@@ -504,14 +549,12 @@ export default function HashTableScene() {
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
             {occupiedCount} of {TABLE_SIZE} buckets filled.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click any bucket. See what&apos;s possible.</span>
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click a bucket. Preview the hash path.</span>
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
-          <Counter value={opsCount} label="ops" />
-          <StatusPill tone={hasCollisions ? 'danger' : 'accent'}>
-            {hasCollisions ? `${lastProbes} probe${lastProbes !== 1 ? 's' : ''} \u00b7 O(n)` : 'O(1) \u00b7 direct'}
-          </StatusPill>
+          <Counter value={lastProbes} danger={hasExtraProbes} label="extra probes" />
+          <StatusPill tone={statusTone}>{statusText}</StatusPill>
         </div>
       </div>
 
@@ -582,6 +625,8 @@ export default function HashTableScene() {
                 slot={popover.slot}
                 position={{ x: popover.x, y: popover.y }}
                 isFull={isFull}
+                nextInsertKey={nextInsertKey}
+                insertPreview={insertPreview}
                 lookupCost={popover.lookupCost}
                 onInsert={executeInsert}
                 onDelete={() => executeDelete(popover.index)}
@@ -607,7 +652,15 @@ export default function HashTableScene() {
         background: 'linear-gradient(180deg, rgba(10,10,15,0), rgba(10,10,15,0.25))',
       }}>
         <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
-        <CtrlButton label="Insert" small onClick={executeInsert} disabled={isFull} />
+        <CtrlButton label="Hash next" small onClick={executeInsert} disabled={isFull} />
+        <div style={{ fontSize: 'var(--size-xs)', color: 'var(--text-dim)', letterSpacing: '0.04em' }}>
+          {`next: "${nextInsertKey}" · home ${insertPreview.home}`}
+          {insertPreview.full
+            ? ' · table full'
+            : insertPreview.probes === 0
+              ? ' · direct'
+              : ` · lands ${insertPreview.index} after ${insertPreview.probes} probe${insertPreview.probes !== 1 ? 's' : ''}`}
+        </div>
       </div>
     </div>
   )

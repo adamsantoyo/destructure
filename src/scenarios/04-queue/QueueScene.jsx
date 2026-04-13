@@ -6,6 +6,7 @@ import Explainer from '../../components/Explainer'
 import CtrlButton from '../../components/CtrlButton'
 import StatusPill from '../../components/StatusPill'
 import OperationHistory from '../../components/OperationHistory'
+import { getDequeueCost, getEnqueueCost } from '../../structures/queue'
 
 /* ── Constants ─────────────────────────────────── */
 
@@ -121,8 +122,6 @@ function QueuePopover({ isFront, position, value, behindCount, onDequeue, onEnqu
           </>
         ) : (
           <div style={{
-            padding: '10px 12px',
-            fontSize: '0.78rem',
             color: 'var(--danger)',
             lineHeight: 1.5,
           }}>
@@ -144,28 +143,23 @@ function QueuePopover({ isFront, position, value, behindCount, onDequeue, onEnqu
 
 function QueueCell({ value, index, isFront, isBack, onClick, diffState, highlighted }) {
   const isNew = diffState === 'new'
-  const isUnchanged = diffState === 'same'
+  const isPromotedFront = diffState === 'promoted-front'
 
   let cellBorder = highlighted ? 'var(--accent)' : 'var(--border)'
   let cellColor = highlighted ? 'var(--accent)' : 'var(--text)'
   let cellBg = highlighted ? 'rgba(0,255,200,0.06)' : 'transparent'
   let cellShadow = highlighted ? '0 0 14px rgba(0,255,200,0.15)' : 'none'
 
-  const isShifted = diffState === 'shifted'
-
-  if (isShifted) {
-    cellBorder = 'rgba(255,51,102,0.5)'
-    cellColor = 'var(--danger)'
-    cellBg = 'rgba(255,51,102,0.06)'
-  } else if (isNew) {
+  if (isNew) {
     cellBorder = 'rgba(0,255,200,0.6)'
     cellColor = 'var(--accent)'
     cellBg = 'rgba(0,255,200,0.10)'
     cellShadow = '0 0 12px rgba(0,255,200,0.2)'
-  } else if (isUnchanged) {
+  } else if (isPromotedFront) {
     cellBorder = 'rgba(0,255,200,0.4)'
     cellColor = 'var(--accent)'
     cellBg = 'rgba(0,255,200,0.06)'
+    cellShadow = '0 0 10px rgba(0,255,200,0.12)'
   }
 
   return (
@@ -224,7 +218,7 @@ function QueueCell({ value, index, isFront, isBack, onClick, diffState, highligh
 
 /* ── StaticQueueCell (frozen before-state) ── */
 
-function StaticQueueCell({ value, index, variant, isFront, isBack }) {
+function StaticQueueCell({ value, index, variant, isFront, isBack, ghost, roleLabel }) {
   const isDanger = variant === 'danger'
   const isInsert = variant === 'insert'
   const isTarget = isDanger || isInsert
@@ -240,21 +234,21 @@ function StaticQueueCell({ value, index, variant, isFront, isBack }) {
       </div>
       <div style={{
         width: 'var(--cell-w)', height: 'var(--cell-h)',
-        border: `${isTarget ? '2px' : '1px'} solid ${borderClr}`,
+        border: `${isTarget ? '2px' : '1px'} ${ghost ? 'dashed' : 'solid'} ${borderClr}`,
         borderRadius: 'var(--radius-sm)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 'var(--size-base)', fontWeight: isTarget ? 700 : 400,
         color, background: bg, opacity: isTarget ? 1 : 0.5, boxShadow: glow,
         userSelect: 'none', textDecoration: isDanger ? 'line-through' : 'none',
       }}>
-        {value}
+        {ghost ? '' : value}
       </div>
       <div style={{
         fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: isFront ? 'var(--accent)' : isBack ? 'var(--text-dim)' : 'transparent',
+        color: roleLabel ? 'var(--accent)' : isFront ? 'var(--accent)' : isBack ? 'var(--text-dim)' : 'transparent',
         opacity: 0.4, minHeight: 14,
       }}>
-        {isFront ? 'front' : isBack ? 'back' : ''}
+        {roleLabel || (isFront ? 'front' : isBack ? 'back' : '')}
       </div>
       {isTarget && (
         <div style={{
@@ -283,7 +277,6 @@ export default function QueueScene() {
   const [history, setHistory] = useState([])
   const [snapshot, setSnapshot] = useState(null)
   const [highlightedIdx, setHighlightedIdx] = useState(null)
-  const [opsCount, setOpsCount] = useState(0)
 
   const insertPoolIdx = useRef(0)
   const highlightTimer = useRef(null)
@@ -307,6 +300,7 @@ export default function QueueScene() {
   const executeDequeue = useCallback(() => {
     if (items.length === 0) return
     const label = items[0].value
+    const cost = getDequeueCost(items.length)
 
     setSnapshot({ items: [...items], targetIndex: 0, action: 'Dequeue' })
     setPopover(null)
@@ -315,25 +309,24 @@ export default function QueueScene() {
     highlightTimer.current = setTimeout(() => {
       setHighlightedIdx(null)
       setItems(prev => prev.slice(1))
-      setHistory(prev => [...prev, { id: historyId++, action: 'Dequeue', label, cost: 0 }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Dequeue', label, cost, costText: 'O(1) · front' }])
       setTried(prev => ({ any: true, count: prev.count + 1 }))
     }, 150)
 
-    setOpsCount(prev => prev + 1)
     setLastOp({ action: 'Dequeue', label })
   }, [items])
 
   /* ── Execute Enqueue ── */
   const executeEnqueue = useCallback(() => {
     const name = nextInsertName()
+    const cost = getEnqueueCost()
     setSnapshot({ items: [...items], targetIndex: items.length, action: 'Enqueue' })
     setPopover(null)
 
     const newItem = makeItem(name)
     setItems(prev => [...prev, newItem])
-    setHistory(prev => [...prev, { id: historyId++, action: 'Enqueue', label: name, cost: 0 }])
+    setHistory(prev => [...prev, { id: historyId++, action: 'Enqueue', label: name, cost, costText: 'O(1) · back' }])
     setTried(prev => ({ any: true, count: prev.count + 1 }))
-    setOpsCount(prev => prev + 1)
     setLastOp({ action: 'Enqueue', label: name })
   }, [items, nextInsertName])
 
@@ -360,7 +353,6 @@ export default function QueueScene() {
     setHighlightedIdx(null)
     setTried({ any: false, count: 0 })
     setLastOp(null)
-    setOpsCount(0)
   }, [clearTimers])
 
   /* ── Keyboard shortcuts ── */
@@ -378,6 +370,8 @@ export default function QueueScene() {
   const isEmpty = items.length === 0
   const promptCount = items.length || INITIAL_NAMES.length
   const nudge = getNudge(tried, lastOp)
+  const waitingCount = Math.max(0, items.length - 1)
+  const statusText = lastOp ? 'direct front/back access · O(1)' : 'role-based access · O(1)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
@@ -399,8 +393,8 @@ export default function QueueScene() {
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
-          <Counter value={opsCount} danger={false} label="ops" />
-          <StatusPill tone="accent">O(1) \u00b7 always</StatusPill>
+          <Counter value={waitingCount} danger={false} label="waiting" />
+          <StatusPill tone="accent">{statusText}</StatusPill>
         </div>
       </div>
 
@@ -436,9 +430,22 @@ export default function QueueScene() {
                     return (
                       <StaticQueueCell key={item.id} value={item.value} index={i}
                         variant={isTarget ? (snapshot.action === 'Dequeue' ? 'danger' : 'insert') : null}
-                        isFront={i === 0} isBack={i === snapshot.items.length - 1} />
+                        isFront={i === 0}
+                        isBack={snapshot.action === 'Enqueue' ? false : i === snapshot.items.length - 1} />
                     )
                   })}
+                  {snapshot.action === 'Enqueue' && (
+                    <StaticQueueCell
+                      key="enqueue-slot"
+                      value=""
+                      index={snapshot.items.length}
+                      variant="insert"
+                      isFront={false}
+                      isBack={false}
+                      ghost
+                      roleLabel="next"
+                    />
+                  )}
                 </div>
                 <div style={{ width: 1, height: 16, borderLeft: '1px dashed var(--border)' }} />
                 <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>After</div>
@@ -453,9 +460,11 @@ export default function QueueScene() {
                 let diffState = null
                 if (snapshot) {
                   const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
-                  if (prevIndex === -1) diffState = 'new'
-                  else if (prevIndex === index) diffState = 'same'
-                  else diffState = 'shifted'
+                  if (snapshot.action === 'Enqueue') {
+                    if (prevIndex === -1) diffState = 'new'
+                  } else if (snapshot.action === 'Dequeue') {
+                    if (index === 0 && prevIndex === 1) diffState = 'promoted-front'
+                  }
                 }
                 return (
                   <QueueCell key={item.id} value={item.value} index={index}

@@ -16,7 +16,7 @@
  */
 export function getDequeueCost(length) {
   if (length <= 0) return 0
-  return 1
+  return 0
 }
 
 /**
@@ -63,7 +63,7 @@ export function dequeue(queue) {
     {
       type: 'remove',
       index: 0,
-      explanation: `"${removed}" is removed from the front. Next in line moves up.`,
+      explanation: `"${removed}" leaves the front. The next item becomes the new front.`,
       ops: 0,
     },
     {

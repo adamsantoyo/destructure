@@ -335,7 +335,7 @@ export default function ArrayScene() {
 
       startCascade(index, cost, () => {
         // Add to history after cascade settles
-        setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, index, cost }])
+        setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${index}` }])
       })
     }, 150)
 
@@ -372,7 +372,7 @@ export default function ArrayScene() {
     })
 
     startCascade(index, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, index, cost }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${index}` }])
     })
     setHighlightedIdx(index)
 
@@ -397,7 +397,7 @@ export default function ArrayScene() {
     })
 
     startCascade(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, index: insertIdx, cost }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${insertIdx}` }])
     })
     setHighlightedIdx(insertIdx)
 
@@ -418,7 +418,7 @@ export default function ArrayScene() {
     setHighlightedIdx(insertIdx)
 
     startCascade(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, index: insertIdx, cost }])
+      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${insertIdx}` }])
       setHighlightedIdx(null)
     })
 

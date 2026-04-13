@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Internal planning docs (not public)
+MANUAL_REVIEW.md
+PRE_BST_CHECKLIST.md
