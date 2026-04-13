@@ -94,7 +94,10 @@ function StackPopover({ isTop, depth, value, position, onPop, onPush, onClose })
               onMouseEnter={e => e.currentTarget.style.background = dangerBg}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <span>Pop</span>
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span>Pop</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Remove from top</span>
+              </span>
               <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
             </button>
             <button
@@ -109,7 +112,10 @@ function StackPopover({ isTop, depth, value, position, onPop, onPush, onClose })
               onMouseEnter={e => e.currentTarget.style.background = bg}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <span>Push new on top</span>
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span>Push</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Add new on top</span>
+              </span>
               <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
             </button>
           </>

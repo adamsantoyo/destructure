@@ -94,7 +94,10 @@ function QueuePopover({ isFront, position, value, behindCount, onDequeue, onEnqu
               onMouseEnter={e => e.currentTarget.style.background = dangerBg}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <span>Dequeue</span>
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span>Dequeue</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Remove from front</span>
+              </span>
               <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
             </button>
             <button
@@ -109,7 +112,10 @@ function QueuePopover({ isFront, position, value, behindCount, onDequeue, onEnqu
               onMouseEnter={e => e.currentTarget.style.background = bg}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <span>Enqueue at back</span>
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span>Enqueue</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Add to the back</span>
+              </span>
               <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
             </button>
           </>
