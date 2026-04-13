@@ -13,8 +13,10 @@
   --accent-glow:  rgba(0, 255, 200, 0.18);
   --danger:       #FF3366;
   --danger-glow:  rgba(255, 51, 102, 0.18);
+  --success:      #66FF99;
+  --success-glow: rgba(102, 255, 153, 0.18);
   --text:         #C8C8E0;
-  --text-dim:     #6A6A8A;
+  --text-dim:     #8A8AAA;
 
   /* Typography */
   --font:         'JetBrains Mono', 'Fira Mono', 'Courier New', monospace;
@@ -37,11 +39,45 @@
   --cell-gap:     10px;
   --cell-radius:  6px;
 
+  /* Radii */
+  --radius-sm:    6px;
+  --radius-md:    12px;
+  --radius-lg:    18px;
+  --radius-pill:  999px;
+
+  /* Shadows */
+  --shadow-sm:    0 4px 12px rgba(0,0,0,0.2);
+  --shadow-md:    0 8px 24px rgba(0,0,0,0.3);
+  --shadow-lg:    0 12px 40px rgba(0,0,0,0.4);
+
   /* Motion */
-  --ease-fast:    200ms linear;
-  --ease-medium:  300ms linear;
+  --ease-fast:    150ms ease;
+  --ease-medium:  300ms ease;
+  --ease-slow:    500ms ease;
 
   /* Layout */
   --sidebar-w:    220px;
   --canvas-pad:   48px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-w:  60px;
+    --canvas-pad: 24px;
+    --cell-w:     64px;
+    --cell-h:     48px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w:  0px;
+    --canvas-pad: 16px;
+    --cell-w:     56px;
+    --cell-h:     44px;
+    --cell-gap:   6px;
+    --size-prompt: 1.2rem;
+    --size-counter: 1.5rem;
+  }
 }

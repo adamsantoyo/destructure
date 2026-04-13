@@ -30,7 +30,7 @@ export default function App() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
 
       {/* ── Sidebar ── */}
-      <aside style={{
+      <aside className="app-sidebar" style={{
         width: 'var(--sidebar-w)',
         minWidth: 'var(--sidebar-w)',
         borderRight: '1px solid var(--border)',
@@ -38,9 +38,10 @@ export default function App() {
         flexDirection: 'column',
         padding: '28px 0',
         gap: 4,
+        transition: 'width 0.3s, min-width 0.3s',
+        overflow: 'hidden',
       }}>
-        {/* Logo */}
-        <div style={{ padding: '0 24px 28px', borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
+        <div className="sidebar-label" style={{ padding: '0 24px 28px', borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
           <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.02em' }}>
             destructure
           </div>
@@ -49,7 +50,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ padding: '0 12px', fontSize: 'var(--size-xs)', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 24 }}>
+        <div className="sidebar-label" style={{ padding: '0 12px', fontSize: 'var(--size-xs)', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, paddingLeft: 24 }}>
           Scenarios
         </div>
 
@@ -75,7 +76,7 @@ export default function App() {
               }}
             >
               <span style={{ color: 'var(--text-dim)', fontSize: 'var(--size-xs)', minWidth: 20 }}>{s.id}</span>
-              {s.label}
+              <span className="sidebar-label">{s.label}</span>
             </button>
           )
         })}

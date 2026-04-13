@@ -9,16 +9,16 @@ export default function Explainer({ eyebrow, text, detail, tone = 'accent' }) {
       <AnimatePresence mode="wait">
         {text && (
           <motion.div
-            key={`${eyebrow ?? ''}-${text}-${detail ?? ''}`}
-            initial={{ opacity: 0, y: 8 }}
+            key={eyebrow ?? ''}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
             style={{
-              width: 'min(760px, 100%)',
+              width: 'min(800px, 100%)',
               minHeight: '5.5rem',
-              padding: '16px 18px',
-              borderRadius: 16,
+              padding: '18px 22px',
+              borderRadius: 'var(--radius-lg)',
               border: `1px solid ${palette.border}`,
               borderLeft: `4px solid ${palette.text}`,
               background: palette.background,
@@ -39,7 +39,7 @@ export default function Explainer({ eyebrow, text, detail, tone = 'accent' }) {
             )}
 
             <div style={{
-              fontSize: '1.05rem',
+              fontSize: '1.15rem',
               fontWeight: 400,
               color: 'var(--text)',
               lineHeight: 1.55,

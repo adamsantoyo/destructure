@@ -25,6 +25,13 @@ export const TONES = {
     text: 'var(--text-dim)',
     pill: 'rgba(255,255,255,0.03)',
   },
+  success: {
+    border: 'rgba(102,255,153,0.35)',
+    background: 'linear-gradient(180deg, rgba(102,255,153,0.08), rgba(102,255,153,0.02))',
+    glow: 'rgba(102,255,153,0.12)',
+    text: 'var(--success)',
+    pill: 'rgba(102,255,153,0.08)',
+  },
 }
 
 export function getTone(name) {
