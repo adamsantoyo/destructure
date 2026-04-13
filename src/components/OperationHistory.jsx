@@ -18,20 +18,20 @@ function HistoryRow({ item }) {
       }}
     >
       <span style={{
-        color: item.action === 'Delete' ? 'var(--danger)' : 'var(--accent)',
+        color: (item.action === 'Delete' || item.action === 'Pop' || item.action === 'Dequeue') ? 'var(--danger)' : 'var(--accent)',
         minWidth: 48,
         fontWeight: 700,
       }}>
         {item.action}
       </span>
       <span style={{ color: 'var(--text)', minWidth: 36 }}>"{item.label}"</span>
-      <span>at index {item.index}</span>
+      {item.index != null && <span>at index {item.index}</span>}
       <span style={{
         marginLeft: 'auto',
         color: isExpensive ? 'var(--danger)' : 'var(--accent)',
         fontWeight: 700,
       }}>
-        {item.cost === 0 ? 'O(1)' : `${item.cost} shift${item.cost !== 1 ? 's' : ''}`}
+        {item.cost === 0 ? 'O(1)' : `${item.cost} ${item.unit || 'shift'}${item.cost !== 1 ? 's' : ''}`}
       </span>
     </motion.div>
   )

@@ -120,6 +120,16 @@ function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onCl
         cursor: 'pointer', position: 'relative',
       }}
     >
+      {/* Index label */}
+      <div style={{
+        fontSize: 'var(--size-xs)',
+        color: isShifted || isNew ? 'var(--danger)' : isUnchanged ? 'var(--accent)' : 'var(--accent)',
+        opacity: diffState ? 0.9 : 0.6,
+        letterSpacing: '0.05em',
+      }}>
+        {index}
+      </div>
+
       {/* Head/Tail label */}
       <div style={{
         fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
@@ -143,13 +153,6 @@ function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onCl
       }}>
         {value}
       </motion.div>
-
-      {/* Position label */}
-      <div style={{
-        fontSize: 'var(--size-xs)', color: 'var(--text-dim)', opacity: 0.4,
-      }}>
-        {index}
-      </div>
     </motion.div>
   )
 }
@@ -170,6 +173,9 @@ function StaticNode({ value, index, variant, isHead, isTail }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
       position: 'relative',
     }}>
+      <div style={{ fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-dim)', opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em' }}>
+        {index}
+      </div>
       <div style={{
         fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
         color: isHead ? 'var(--accent)' : isTail ? 'var(--text-dim)' : 'transparent',
@@ -190,9 +196,6 @@ function StaticNode({ value, index, variant, isHead, isTail }) {
         textDecoration: isDanger ? 'line-through' : 'none',
       }}>
         {value}
-      </div>
-      <div style={{ fontSize: 'var(--size-xs)', color: 'var(--text-dim)', opacity: 0.4 }}>
-        {index}
       </div>
 
       {/* Action badge */}
