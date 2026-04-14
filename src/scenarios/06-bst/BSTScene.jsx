@@ -26,27 +26,25 @@ function layoutTree(root) {
   if (root === null) return { nodes: [], edges: [] }
   const nodes = []
   const edges = []
-  let minX = Infinity
 
-  function walk(node, depth, x, parentX, parentY, dx) {
+  // In-order traversal assigns x = rank (guarantees no overlap)
+  let rank = 0
+  function inOrder(node, depth, parentValue) {
     if (node === null) return
-    nodes.push({ value: node.value, x, y: depth, left: node.left, right: node.right })
-    if (parentX !== null) {
-      edges.push({ x1: parentX, y1: parentY, x2: x, y2: depth })
-    }
-    if (x < minX) minX = x
-    const childDx = dx / 2
-    walk(node.left, depth + 1, x - dx, x, depth, childDx)
-    walk(node.right, depth + 1, x + dx, x, depth, childDx)
+    inOrder(node.left, depth + 1, node.value)
+    const x = rank++
+    nodes.push({ value: node.value, x, y: depth, left: node.left, right: node.right, parentValue })
+    inOrder(node.right, depth + 1, node.value)
   }
+  inOrder(root, 0, null)
 
-  walk(root, 0, 0, null, null, 4)
-
-  // Normalize so minX is 0
-  if (minX < 0) {
-    const shift = -minX
-    nodes.forEach(n => { n.x += shift })
-    edges.forEach(e => { e.x1 += shift; e.x2 += shift })
+  // Build edges from parent→child relationships
+  const nodeMap = new Map(nodes.map(n => [n.value, n]))
+  for (const n of nodes) {
+    if (n.parentValue !== null) {
+      const parent = nodeMap.get(n.parentValue)
+      if (parent) edges.push({ x1: parent.x, y1: parent.y, x2: n.x, y2: n.y })
+    }
   }
 
   return { nodes, edges }
