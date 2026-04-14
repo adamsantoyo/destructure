@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import './App.css'
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
 import ArrayScene from './scenarios/01-array/ArrayScene'
 import LinkedListScene from './scenarios/02-linked-list/LinkedListScene'

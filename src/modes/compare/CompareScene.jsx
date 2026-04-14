@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 export default function CompareScene() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '40px' }}>
