@@ -54,25 +54,27 @@ function layoutTree(root) {
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'What is a BST?', text: 'A tree where every node follows one rule: left child is smaller, right child is larger. Each comparison picks a direction, so you never search the whole tree.', detail: 'Click a node to search or delete it. Insert new values and watch the tree grow — notice how shape affects the path.' }
+    return { tone: 'neutral', eyebrow: 'What is a BST?', text: 'Left child is smaller, right child is larger. Each comparison picks a direction — you never search the whole tree.', detail: 'Insert values and watch the tree grow. Then click a node to search or delete it. The shape of the tree determines the cost.' }
   }
   if (tried.count === 1 && lastOp) {
     if (lastOp.action === 'Search') {
       return lastOp.steps === 0
-        ? { tone: 'accent', eyebrow: 'Root', text: `Found "${lastOp.label}" at the root — 0 path steps.`, detail: null }
-        : { tone: 'accent', eyebrow: 'Found', text: `"${lastOp.label}" was ${lastOp.steps} step${lastOp.steps !== 1 ? 's' : ''} from the root.`, detail: 'Each comparison sends you left or right.' }
+        ? { tone: 'accent', eyebrow: 'Root', text: `Found "${lastOp.label}" at the root — 0 path steps.`, detail: 'Now insert a few values and search again. Watch the path get longer as the tree grows.' }
+        : { tone: 'accent', eyebrow: 'Found', text: `"${lastOp.label}" was ${lastOp.steps} step${lastOp.steps !== 1 ? 's' : ''} from the root. Each comparison sent you left or right.`, detail: 'Insert more values and watch how the tree\'s shape changes the cost.' }
     }
     if (lastOp.action === 'Insert') {
-      return { tone: 'accent', eyebrow: 'Inserted', text: `"${lastOp.label}" landed ${lastOp.steps} step${lastOp.steps !== 1 ? 's' : ''} from the root.`, detail: 'New nodes always become leaves.' }
+      return { tone: 'accent', eyebrow: 'Inserted', text: `"${lastOp.label}" landed ${lastOp.steps} step${lastOp.steps !== 1 ? 's' : ''} from the root. New nodes always become leaves.`, detail: 'Keep inserting — the tree\'s shape will determine how expensive everything gets.' }
     }
-    return { tone: 'accent', eyebrow: 'Deleted', text: `Removed "${lastOp.label}" from the tree.`, detail: null }
-  }  if (lastOp && lastOp.action === 'Delete' && lastOp.deleteCase === 'two-children') {
+    return { tone: 'accent', eyebrow: 'Deleted', text: `Removed "${lastOp.label}" from the tree.`, detail: 'Try inserting values to rebuild and watch the shape change.' }
+  }
+  if (lastOp && lastOp.action === 'Delete' && lastOp.deleteCase === 'two-children') {
     return { tone: 'danger', eyebrow: 'Two children', text: `"${lastOp.label}" had two children \u2014 the tree found the next-largest value (in-order successor) to take its place.`, detail: 'That\u2019s why 2-child deletes cost more: find the node, then walk to its successor.' }
-  }  if (tried.count < 4) {
-    return { tone: 'neutral', eyebrow: 'Keep going', text: 'Insert more values. Watch the tree grow — and notice which side gets deeper.', detail: 'Try inserting sorted values to see what happens.' }
+  }
+  if (tried.count < 4) {
+    return { tone: 'neutral', eyebrow: 'Keep inserting', text: 'Watch which side gets deeper. The deeper the tree, the longer the path to find anything.', detail: 'Try inserting sorted values (like 1, 2, 3, 4) to see what happens to the shape.' }
   }
   if (tried.count < 7) {
-    return { tone: 'success', eyebrow: 'Shape matters', text: 'Balanced tree \u2248 O(log n). Skewed tree \u2248 O(n). Same rules, different cost.', detail: 'That\u2019s why there are self-balancing trees \u2014 to prevent the worst case.' }
+    return { tone: 'success', eyebrow: 'Shape matters', text: 'Balanced tree \u2248 O(log n). Skewed tree \u2248 O(n). Same rules, different cost.', detail: 'That\u2019s why self-balancing trees (AVL, Red-Black) exist \u2014 to prevent the worst case.' }
   }
   return null
 }
@@ -478,6 +480,10 @@ export default function BSTScene() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
           <Counter value={lastSteps} danger={hasSteps && isDegrading} label="path steps" />
           <StatusPill tone={statusTone}>{statusText}</StatusPill>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <CtrlButton onClick={executeInsert} glow>Insert {nextVal}</CtrlButton>
+            <CtrlButton onClick={handleReset} shortcut="R" small>Reset</CtrlButton>
+          </div>
         </div>
       </div>
 
@@ -554,16 +560,12 @@ export default function BSTScene() {
         )}
       </AnimatePresence>
 
-      {/* Footer: Insert + Reset + History */}
+      {/* Footer: History */}
       <div style={{
         position: 'relative', zIndex: 1,
         padding: '0 var(--canvas-pad) 24px',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
       }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <CtrlButton onClick={executeInsert}>Insert {nextVal}</CtrlButton>
-          <CtrlButton onClick={handleReset} shortcut="R">Reset</CtrlButton>
-        </div>
         <OperationHistory history={history} />
       </div>
     </div>
