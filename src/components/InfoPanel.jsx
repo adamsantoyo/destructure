@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
+import { STRUCTURE_INFO } from '../data/dictionary'
 
 /* ── Section primitives ── */
 
@@ -40,8 +41,6 @@ function CostRow({ op, best, worst, note }) {
     </div>
   )
 }
-
-import { STRUCTURE_INFO } from '../data/dictionary'
 
 /* ── InfoPanel component ── */
 
