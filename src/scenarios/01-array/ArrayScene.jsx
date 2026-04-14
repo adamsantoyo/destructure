@@ -28,10 +28,10 @@ function resetIds() { nextId = 0 }
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Array', text: 'Click any cell to see what happens.', detail: 'Each cell is an element. Pick one and choose an operation.' }
+    return { tone: 'neutral', eyebrow: 'What is an array?', text: 'Items stored side by side at numbered positions. You can jump to any position instantly — but removing an item forces everything behind it to slide over.', detail: 'Click a cell to delete or insert. Watch what the rest of the array has to do.' }
   }
   if (lastOp && !tried.end) {
-    return { tone: lastOp.cost > 1 ? 'danger' : 'accent', eyebrow: `${lastOp.cost} shifts`, text: `Deleting from position ${lastOp.index} cost ${lastOp.cost} shift${lastOp.cost !== 1 ? 's' : ''}. Now try the last cell.`, detail: 'Compare the cost. Position matters.' }
+    return { tone: lastOp.cost > 1 ? 'danger' : 'accent', eyebrow: `${lastOp.cost} shifts`, text: `Deleting from position ${lastOp.index} cost ${lastOp.cost} shift${lastOp.cost !== 1 ? 's' : ''}. Now try the last cell.`, detail: 'Every element behind the gap slides forward to fill it. Each slide is a shift.' }
   }
   if (tried.front && tried.end && !tried.middle) {
     return { tone: 'success', eyebrow: 'Pattern', text: `Front: ${tried.frontCost} shifts. End: ${tried.endCost}. Try the middle.`, detail: 'The closer to the front, the more elements have to move.' }
@@ -82,6 +82,9 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
   return (
     <motion.div
       layout
+      role="button"
+      tabIndex={cascading ? -1 : 0}
+      aria-label={`Array cell at index ${index} with value ${value}`}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.6, y: -20 }}
@@ -96,7 +99,8 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
           delay: staggerDelay,
         },
       }}
-      onClick={onClick}
+      onClick={cascading ? undefined : onClick}
+      onKeyDown={(e) => !cascading && (e.key === 'Enter' || e.key === ' ') && onClick()}
       whileHover={cascading ? {} : { scale: 1.05, borderColor: 'var(--accent)' }}
       whileTap={cascading ? {} : { scale: 0.97 }}
       style={{
@@ -532,8 +536,8 @@ export default function ArrayScene() {
             01 — Array
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            You have a playlist of {promptCount} songs.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click a cell. See the cost.</span>
+            An array stores {promptCount} items in a row.<br />
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Removing one forces everything behind it to shift.</span>
           </h2>
         </div>
 

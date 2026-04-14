@@ -56,7 +56,7 @@ function layoutTree(root) {
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Binary Search Tree', text: 'Click any node to search, delete, or insert nearby.', detail: 'Left child < parent < right child. Shape controls the cost.' }
+    return { tone: 'neutral', eyebrow: 'What is a BST?', text: 'A tree where every node follows one rule: left child is smaller, right child is larger. Each comparison picks a direction, so you never search the whole tree.', detail: 'Click a node to search or delete it. Insert new values and watch the tree grow — notice how shape affects the path.' }
   }
   if (tried.count === 1 && lastOp) {
     if (lastOp.action === 'Search') {
@@ -68,8 +68,9 @@ function getNudge(tried, lastOp) {
       return { tone: 'accent', eyebrow: 'Inserted', text: `"${lastOp.label}" landed ${lastOp.steps} step${lastOp.steps !== 1 ? 's' : ''} from the root.`, detail: 'New nodes always become leaves.' }
     }
     return { tone: 'accent', eyebrow: 'Deleted', text: `Removed "${lastOp.label}" from the tree.`, detail: null }
-  }
-  if (tried.count < 4) {
+  }  if (lastOp && lastOp.action === 'Delete' && lastOp.deleteCase === 'two-children') {
+    return { tone: 'danger', eyebrow: 'Two children', text: `"${lastOp.label}" had two children \u2014 the tree found the next-largest value (in-order successor) to take its place.`, detail: 'That\u2019s why 2-child deletes cost more: find the node, then walk to its successor.' }
+  }  if (tried.count < 4) {
     return { tone: 'neutral', eyebrow: 'Keep going', text: 'Insert more values. Watch the tree grow — and notice which side gets deeper.', detail: 'Try inserting sorted values to see what happens.' }
   }
   if (tried.count < 7) {
@@ -370,7 +371,7 @@ export default function BSTScene() {
     }
     setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label: String(value), cost: totalCost, costText }])
     setTried(prev => ({ any: true, count: prev.count + 1 }))
-    setLastOp({ action: 'Delete', label: String(value), steps: totalCost })
+    setLastOp({ action: 'Delete', label: String(value), steps: totalCost, deleteCase: result.deleteCase })
   }, [tree, animatePath])
 
   /* ── Node click → popover ── */
@@ -459,8 +460,8 @@ export default function BSTScene() {
             06 — Binary Search Tree
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            {nodeCount} nodes, height {height}.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click a node. Follow the path.</span>
+            A binary search tree.<br />
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Left is smaller, right is larger. Shape controls speed.</span>
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>

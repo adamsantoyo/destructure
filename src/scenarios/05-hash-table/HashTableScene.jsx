@@ -42,13 +42,16 @@ function buildInitialBuckets() {
 
 function getNudge(tried, lastOp, lastProbes) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Hash Table', text: 'Click a bucket to inspect it, or preview where the next key will land.', detail: 'Keys hash to a home bucket. Collisions force linear probing.' }
+    return { tone: 'neutral', eyebrow: 'What is a hash table?', text: 'A structure that converts a key into a bucket number using a hash function. If the bucket is empty, access is instant. If it\u2019s taken, you have to keep looking.', detail: 'Click any bucket to see where the next key will land, or inspect an existing one.' }
   }
   if (tried.count === 1 && lastOp) {
     if (lastProbes === 0) {
       return { tone: 'accent', eyebrow: 'Direct hit', text: `"${lastOp.label}" hashed straight to its bucket. No collisions \u2014 O(1).`, detail: null }
     }
     return { tone: 'danger', eyebrow: 'Collision', text: `"${lastOp.label}" needed ${lastProbes} extra probe${lastProbes !== 1 ? 's' : ''} \u2014 the bucket was taken.`, detail: 'When two keys hash to the same slot, one has to keep looking.' }
+  }
+  if (lastOp && lastOp.action === 'Delete' && !tried.tombstoneExplained) {
+    return { tone: 'neutral', eyebrow: 'Tombstone', text: `"${lastOp.label}" is gone, but the slot shows \u00d7 instead of empty.`, detail: 'That marker keeps the probe chain intact. Without it, lookups for items that probed past this slot would break.' }
   }
   if (tried.count < 4) {
     return { tone: 'neutral', eyebrow: 'Keep going', text: 'Insert more items. Watch for collisions as the table fills up.', detail: 'The fuller the table, the more probes each operation needs.' }
@@ -363,7 +366,7 @@ export default function HashTableScene() {
   const insertPoolIdx = useRef(0)
   const probeTimer = useRef(null)
 
-  const [tried, setTried] = useState({ any: false, count: 0 })
+  const [tried, setTried] = useState({ any: false, count: 0, tombstoneExplained: false })
   const [lastOp, setLastOp] = useState(null)
 
   const clearTimers = useCallback(() => {
@@ -447,7 +450,7 @@ export default function HashTableScene() {
     }, 150)
 
     setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, cost: probes, costText: probes === 0 ? 'O(1) · home' : `${probes} extra probe${probes !== 1 ? 's' : ''}` }])
-    setTried(prev => ({ any: true, count: prev.count + 1 }))
+    setTried(prev => ({ any: true, count: prev.count + 1, tombstoneExplained: true }))
     setLastOp({ action: 'Delete', label })
   }, [buckets])
 
@@ -506,7 +509,7 @@ export default function HashTableScene() {
     setSnapshot(null)
     setHighlightedIdx(null)
     setProbingIndices([])
-    setTried({ any: false, count: 0 })
+    setTried({ any: false, count: 0, tombstoneExplained: false })
     setLastOp(null)
     setLastProbes(0)
   }, [clearTimers])
@@ -548,8 +551,8 @@ export default function HashTableScene() {
             05 \u2014 Hash Table
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            {occupiedCount} of {TABLE_SIZE} buckets filled.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click a bucket. Preview the hash path.</span>
+            A hash table with {TABLE_SIZE} buckets.<br />
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Keys hash to a home bucket. Collisions force searching.</span>
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>

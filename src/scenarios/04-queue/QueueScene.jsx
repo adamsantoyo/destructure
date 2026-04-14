@@ -24,7 +24,7 @@ function resetIds() { nextId = 0 }
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Queue', text: 'Click any item to see what you can do.', detail: 'First in, first out \u2014 the oldest item leaves first.' }
+    return { tone: 'neutral', eyebrow: 'What is a queue?', text: 'A line where items join at the back and leave from the front. First in, first out — everyone waits their turn.', detail: 'Click any item. Only the front can leave. Everyone else is waiting.' }
   }
   if (tried.count === 1 && lastOp) {
     return lastOp.action === 'Dequeue'
@@ -368,7 +368,6 @@ export default function QueueScene() {
 
   /* ── Derived state ── */
   const isEmpty = items.length === 0
-  const promptCount = items.length || INITIAL_NAMES.length
   const nudge = getNudge(tried, lastOp)
   const waitingCount = Math.max(0, items.length - 1)
   const statusText = lastOp ? 'direct front/back access · O(1)' : 'role-based access · O(1)'
@@ -388,8 +387,8 @@ export default function QueueScene() {
             04 \u2014 Queue
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            A queue of {promptCount} items.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click any item. See what&apos;s possible.</span>
+            A queue. First in, first out.<br />
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Join at the back, leave from the front. No cutting.</span>
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>

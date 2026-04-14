@@ -24,7 +24,7 @@ function resetIds() { nextId = 0 }
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Stack', text: 'Click any item to see what you can do.', detail: 'Last in, first out — the most recent item leaves first.' }
+    return { tone: 'neutral', eyebrow: 'What is a stack?', text: 'A collection where you can only add or remove from the top. Last in, first out — like a stack of plates.', detail: 'Click any item. The top one can be removed. Everything below is blocked.' }
   }
   if (tried.count === 1 && lastOp) {
     return lastOp.action === 'Pop'
@@ -393,8 +393,8 @@ export default function StackScene() {
             03 — Stack
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            A stack of {items.length} items.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click any item. See what's possible.</span>
+            A stack. Only the top is reachable.<br />
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Everything below is buried until you remove what{"'"} above.</span>
           </h2>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>

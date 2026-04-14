@@ -28,7 +28,7 @@ function resetIds() { nextId = 0 }
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'Linked List', text: 'Click any node to see the cost.', detail: 'Unlike arrays, there are no indexes — only pointers from node to node.' }
+    return { tone: 'neutral', eyebrow: 'What is a linked list?', text: 'Each node holds a value and a pointer to the next. There are no positions — to reach a node, you follow the chain from the start.', detail: 'Click a node. The cost is how many steps it takes to walk there, not how many elements shift.' }
   }
   if (lastOp && lastOp.action === 'Delete' && lastOp.index === 0 && !tried.end) {
     return { tone: 'accent', eyebrow: 'O(1)', text: 'Deleting the head was free — no traversal. Now try the tail.', detail: 'How do you reach the last node without an index?' }
@@ -463,8 +463,8 @@ export default function LinkedListScene() {
             02 — Linked List
           </div>
           <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            {promptCount} nodes in a chain.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Click a node. Walk the cost.</span>
+            A linked list chains {promptCount} nodes together.<br />
+            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>No indexes. To reach a node, walk from the head.</span>
           </h2>
         </div>
 
