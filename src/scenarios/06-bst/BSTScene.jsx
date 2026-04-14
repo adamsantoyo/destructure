@@ -236,14 +236,26 @@ function TreeNode({ value, cx, cy, highlighted, pathHighlighted, isNew, onClick 
 
 /* ── TreeEdge ── */
 
-function TreeEdge({ x1, y1, x2, y2, highlighted }) {
+function TreeEdge({ x1, y1, x2, y2, highlighted, radius }) {
+  // Shorten the line so it stops at the circle perimeter, not the center
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const len = Math.sqrt(dx * dx + dy * dy)
+  if (len === 0) return null
+  const ux = dx / len
+  const uy = dy / len
+  const sx = x1 + ux * radius
+  const sy = y1 + uy * radius
+  const ex = x2 - ux * radius
+  const ey = y2 - uy * radius
+
   return (
     <motion.line
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      x1={x1} y1={y1} x2={x2} y2={y2}
+      x1={sx} y1={sy} x2={ex} y2={ey}
       stroke={highlighted ? 'var(--accent)' : 'var(--border)'}
       strokeWidth={highlighted ? 2 : 1}
       style={{ transition: 'stroke 0.15s' }}
@@ -432,10 +444,11 @@ export default function BSTScene() {
   const layout = layoutTree(tree)
   const maxX = Math.max(...layout.nodes.map(n => n.x), 0)
   const maxY = Math.max(...layout.nodes.map(n => n.y), 0)
-  const svgW = (maxX + 1) * NODE_SPACING_X + NODE_RADIUS * 2 + 40
-  const svgH = (maxY + 1) * NODE_SPACING_Y + NODE_RADIUS * 2 + 40
-  const offsetX = NODE_RADIUS + 20
-  const offsetY = NODE_RADIUS + 20
+  const pad = NODE_RADIUS + 32
+  const svgW = (maxX + 1) * NODE_SPACING_X + pad * 2
+  const svgH = (maxY + 1) * NODE_SPACING_Y + pad * 2
+  const offsetX = pad
+  const offsetY = pad
 
   function toSvgX(x) { return x * NODE_SPACING_X + offsetX }
   function toSvgY(y) { return y * NODE_SPACING_Y + offsetY }
@@ -495,6 +508,7 @@ export default function BSTScene() {
                 key={`e-${i}`}
                 x1={toSvgX(e.x1)} y1={toSvgY(e.y1)}
                 x2={toSvgX(e.x2)} y2={toSvgY(e.y2)}
+                radius={NODE_RADIUS}
                 highlighted={pathValues.includes(
                   layout.nodes.find(n => n.x === e.x2 && n.y === e.y2)?.value
                 )}
