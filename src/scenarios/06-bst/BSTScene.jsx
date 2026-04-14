@@ -302,7 +302,10 @@ export default function BSTScene() {
 
   /* ── Animate path highlighting ── */
   const animatePath = useCallback((path, onDone) => {
+    clearTimers()
     setPathValues([])
+    setHighlightedValue(null)
+    setNewValue(null)
     let i = 0
     function step() {
       if (i < path.length) {
@@ -314,7 +317,7 @@ export default function BSTScene() {
       }
     }
     step()
-  }, [])
+  }, [clearTimers])
 
   /* ── Execute Search ── */
   const executeSearch = useCallback((value) => {
