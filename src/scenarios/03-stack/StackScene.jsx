@@ -121,20 +121,40 @@ function StackPopover({ isTop, depth, value, position, onPop, onPush, onClose })
             </button>
           </>
         ) : (
-          <div style={{
-            padding: '10px 12px',
-            fontSize: '0.78rem',
-            color: 'var(--danger)',
-            lineHeight: 1.5,
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>
-              Blocked
+          <>
+            <div style={{
+              padding: '10px 12px 6px',
+              fontSize: '0.78rem',
+              color: 'var(--danger)',
+              lineHeight: 1.5,
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                Pop blocked
+              </div>
+              <div style={{ color: 'var(--text-dim)', fontWeight: 300 }}>
+                Buried under {depth} item{depth !== 1 ? 's' : ''}.
+                You'd need to pop {depth === 1 ? 'it' : 'them all'} first — that's the constraint.
+              </div>
             </div>
-            <div style={{ color: 'var(--text-dim)', fontWeight: 300 }}>
-              Buried under {depth} item{depth !== 1 ? 's' : ''}.
-              You'd need to pop {depth === 1 ? 'it' : 'them all'} first — that's the constraint.
-            </div>
-          </div>
+            <button
+              onClick={onPush}
+              style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                width: '100%', padding: '8px 12px', background: 'transparent',
+                border: 'none', borderRadius: 6, cursor: 'pointer',
+                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
+                gap: 24, transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = bg}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span>Push</span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Add new on top</span>
+              </span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
+            </button>
+          </>
         )}
       </motion.div>
     </>
