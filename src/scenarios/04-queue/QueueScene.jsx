@@ -42,7 +42,7 @@ function getNudge(tried, lastOp) {
 
 /* ── QueuePopover ── */
 
-function QueuePopover({ isFront, position, value, behindCount, onDequeue, onEnqueue, onClose }) {
+function QueuePopover({ isFront, isBack, position, value, behindCount, onDequeue, onEnqueue, onClose }) {
   const bg = 'rgba(0,255,200,0.06)'
   const dangerBg = 'rgba(255,51,102,0.06)'
 
@@ -78,47 +78,51 @@ function QueuePopover({ isFront, position, value, behindCount, onDequeue, onEnqu
           borderBottom: '1px solid var(--border)',
           marginBottom: 4,
         }}>
-          {isFront ? `front \u00b7 "${value}"` : `"${value}"`}
+          {isFront && isBack ? `front & back \u00b7 "${value}"` : isFront ? `front \u00b7 "${value}"` : isBack ? `back \u00b7 "${value}"` : `"${value}"`}
         </div>
 
-        {isFront ? (
+        {isFront || isBack ? (
           <>
-            <button
-              onClick={onDequeue}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                width: '100%', padding: '8px 12px', background: 'transparent',
-                border: 'none', borderRadius: 6, cursor: 'pointer',
-                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
-                gap: 24, transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = dangerBg}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span>Dequeue</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Remove from front</span>
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
-            </button>
-            <button
-              onClick={onEnqueue}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                width: '100%', padding: '8px 12px', background: 'transparent',
-                border: 'none', borderRadius: 6, cursor: 'pointer',
-                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
-                gap: 24, transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = bg}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span>Enqueue</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Add to the back</span>
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
-            </button>
+            {isFront && (
+              <button
+                onClick={onDequeue}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  width: '100%', padding: '8px 12px', background: 'transparent',
+                  border: 'none', borderRadius: 6, cursor: 'pointer',
+                  color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
+                  gap: 24, transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = dangerBg}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span>Dequeue</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Remove from front</span>
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
+              </button>
+            )}
+            {isBack && (
+              <button
+                onClick={onEnqueue}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  width: '100%', padding: '8px 12px', background: 'transparent',
+                  border: 'none', borderRadius: 6, cursor: 'pointer',
+                  color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
+                  gap: 24, transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = bg}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span>Enqueue</span>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Add new item to back</span>
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
+              </button>
+            )}
           </>
         ) : (
           <div style={{
@@ -480,6 +484,7 @@ export default function QueueScene() {
             {popover && (
               <QueuePopover
                 isFront={popover.index === 0}
+                isBack={popover.index === items.length - 1}
                 position={{ x: popover.x, y: popover.y }}
                 value={popover.value}
                 behindCount={popover.index}
