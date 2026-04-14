@@ -312,10 +312,6 @@ export default function BSTScene() {
 
     animatePath(result.path, () => {
       setHighlightedValue(value)
-      animTimer.current = setTimeout(() => {
-        setHighlightedValue(null)
-        setPathValues([])
-      }, 600)
     })
 
     const costText = result.steps === 0 ? 'O(1) · root' : `${result.steps} path step${result.steps !== 1 ? 's' : ''}`
@@ -355,8 +351,6 @@ export default function BSTScene() {
     animatePath(result.path, () => {
       setHighlightedValue(value)
       animTimer.current = setTimeout(() => {
-        setHighlightedValue(null)
-        setPathValues([])
         setTree(result.tree)
       }, 300)
     })
@@ -374,7 +368,10 @@ export default function BSTScene() {
 
   /* ── Node click → popover ── */
   const handleNodeClick = useCallback((value, event) => {
-    if (pathValues.length > 0) return // animation in progress
+    clearTimers()
+    setPathValues([])
+    setHighlightedValue(null)
+    setNewValue(null)
     const rect = event.currentTarget.getBoundingClientRect
       ? event.currentTarget.getBoundingClientRect()
       : event.target.getBoundingClientRect()
@@ -385,7 +382,7 @@ export default function BSTScene() {
       x: rect.left + rect.width / 2,
       y: rect.bottom + 8,
     })
-  }, [tree, pathValues])
+  }, [tree, clearTimers])
 
   /* ── Reset ── */
   const handleReset = useCallback(() => {
