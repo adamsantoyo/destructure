@@ -1,21 +1,18 @@
 import { getTone } from '../styles/tones'
+import styles from './StatusPill.module.css'
 
 export default function StatusPill({ tone = 'accent', children }) {
   const palette = getTone(tone)
   return (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '3px 10px',
-      borderRadius: 'var(--radius-pill)',
-      border: `1px solid ${palette.border}`,
-      background: palette.background,
-      fontSize: '0.7rem',
-      fontWeight: 400,
-      color: palette.text,
-      letterSpacing: '0.06em',
-      whiteSpace: 'nowrap',
-    }}>
+    <div
+      className={styles.pill}
+      style={{
+        '--tone-text': palette.text,
+        '--tone-border': palette.border,
+        '--tone-background': palette.background,
+      }}
+    >
+      <span className={styles.dot} />
       {children}
     </div>
   )

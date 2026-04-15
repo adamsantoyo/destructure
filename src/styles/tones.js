@@ -21,14 +21,14 @@ export function getTone(tone = 'accent') {
       }
     case 'neutral':
       return {
-        text:       'var(--text-dim)',
+        text:       'var(--text-secondary)',
         border:     'rgba(255, 255, 255, 0.08)',
         background: 'rgba(255, 255, 255, 0.02)',
         glow:       'transparent',
       }
     case 'muted':
       return {
-        text:       'var(--text-dim)',
+        text:       'var(--text-secondary)',
         border:     'var(--border)',
         background: 'rgba(255, 255, 255, 0.02)',
         glow:       'transparent',

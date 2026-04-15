@@ -1,24 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
-import Grid from '../../components/Grid'
 import Counter from '../../components/Counter'
 import Explainer from '../../components/Explainer'
 import CtrlButton from '../../components/CtrlButton'
 import StatusPill from '../../components/StatusPill'
+import CellPopover from '../../components/CellPopover'
 import OperationHistory from '../../components/OperationHistory'
+import SceneFrame from '../../components/SceneFrame'
+import moveFocusByArrow from '../../hooks/moveFocusByArrow'
+import useIncrementingId from '../../hooks/useIncrementingId'
+import useSceneKeyboard from '../../hooks/useSceneKeyboard'
 import { getPopCost, getPushCost } from '../../structures/stack'
+import sceneStyles from '../scenePatterns.module.css'
 
 /* ── Constants ─────────────────────────────────── */
 
 const INITIAL_NAMES = ['Ivy', 'Moth', 'Neon', 'Dust', 'Echo']
 const INSERT_NAMES = ['Ash', 'Rune', 'Flux', 'Dew', 'Coda', 'Wren', 'Lux', 'Byte', 'Opal', 'Zinc']
-
-/* ── ID generator ── */
-
-let nextId = 0
-function makeItem(value) { return { id: nextId++, value } }
-function makeItems(names) { return names.map(makeItem) }
-function resetIds() { nextId = 0 }
 
 /* ── Nudge logic ── */
 
@@ -40,130 +38,9 @@ function getNudge(tried, lastOp) {
   return null
 }
 
-/* ── StackPopover ── */
-
-function StackPopover({ isTop, depth, value, position, onPop, onPush, onClose }) {
-  const bg = 'rgba(0,255,200,0.06)'
-  const dangerBg = 'rgba(255,51,102,0.06)'
-
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
-      <motion.div
-        initial={{ opacity: 0, y: -6, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -4, scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        style={{
-          position: 'fixed',
-          left: position.x,
-          top: position.y,
-          transform: 'translateX(-50%)',
-          zIndex: 20,
-          background: 'rgba(10,10,20,0.96)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '6px',
-          minWidth: 200,
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        }}
-      >
-        <div style={{
-          padding: '4px 12px 8px',
-          fontSize: '0.68rem',
-          color: 'var(--text-dim)',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          borderBottom: '1px solid var(--border)',
-          marginBottom: 4,
-        }}>
-          {isTop ? `top \u00b7 "${value}"` : `depth ${depth} \u00b7 "${value}"`}
-        </div>
-
-        {isTop ? (
-          <>
-            <button
-              onClick={onPop}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                width: '100%', padding: '8px 12px', background: 'transparent',
-                border: 'none', borderRadius: 6, cursor: 'pointer',
-                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
-                gap: 24, transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = dangerBg}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span>Pop</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Remove from top</span>
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
-            </button>
-            <button
-              onClick={onPush}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                width: '100%', padding: '8px 12px', background: 'transparent',
-                border: 'none', borderRadius: 6, cursor: 'pointer',
-                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
-                gap: 24, transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = bg}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span>Push</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Add new on top</span>
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <div style={{
-              padding: '10px 12px 6px',
-              fontSize: '0.78rem',
-              color: 'var(--danger)',
-              lineHeight: 1.5,
-            }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                Pop blocked
-              </div>
-              <div style={{ color: 'var(--text-dim)', fontWeight: 300 }}>
-                Buried under {depth} item{depth !== 1 ? 's' : ''}.
-                You'd need to pop {depth === 1 ? 'it' : 'them all'} first — that's the constraint.
-              </div>
-            </div>
-            <button
-              onClick={onPush}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                width: '100%', padding: '8px 12px', background: 'transparent',
-                border: 'none', borderRadius: 6, cursor: 'pointer',
-                color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
-                gap: 24, transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = bg}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span>Push</span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>Add new on top</span>
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 700 }}>O(1)</span>
-            </button>
-          </>
-        )}
-      </motion.div>
-    </>
-  )
-}
-
 /* ── StackCell ── */
 
-function StackCell({ value, depth, isTop, onClick, diffState, highlighted }) {
+function StackCell({ value, depth, isTop, onClick, diffState, highlighted, disabled = false }) {
   const isNew = diffState === 'new'
   const isPromotedTop = diffState === 'promoted-top'
 
@@ -187,22 +64,40 @@ function StackCell({ value, depth, isTop, onClick, diffState, highlighted }) {
   return (
     <motion.div
       layout
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-label={`Stack item ${value} at depth ${depth}${isTop ? ', top of stack' : ''}`}
+      data-nav-group="stack-cells"
+      data-nav-index={depth}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.6, y: -20 }}
       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-      onClick={onClick}
-      whileHover={{ scale: 1.05, borderColor: 'var(--accent)' }}
-      whileTap={{ scale: 0.97 }}
+      onClick={disabled ? undefined : onClick}
+      onKeyDown={(event) => {
+        if (disabled) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick(event)
+          return
+        }
+        moveFocusByArrow(event, {
+          group: 'stack-cells',
+          index: depth,
+          bindings: { ArrowUp: -1, ArrowDown: 1 },
+        })
+      }}
+      whileHover={disabled ? {} : { scale: 1.05, borderColor: 'var(--accent)' }}
+      whileTap={disabled ? {} : { scale: 0.97 }}
       style={{
         display: 'flex', flexDirection: 'row', alignItems: 'center',
-        gap: 10, position: 'relative', cursor: 'pointer',
+        gap: 10, position: 'relative', cursor: disabled ? 'default' : 'pointer',
       }}
     >
       {/* Depth label */}
       <div style={{
         fontSize: 'var(--size-xs)',
-        color: isTop ? 'var(--accent)' : 'var(--text-dim)',
+        color: isTop ? 'var(--accent)' : 'var(--text-secondary)',
         opacity: diffState ? 0.9 : 0.6,
         letterSpacing: '0.05em',
         width: 16, textAlign: 'right', flexShrink: 0,
@@ -244,7 +139,7 @@ function StaticStackCell({ value, depth, variant, ghost = false, roleLabel = '',
   const isDanger = variant === 'danger'
   const isInsert = variant === 'insert'
   const isTarget = isDanger || isInsert
-  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-dim)'
+  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-secondary)'
   const borderClr = isDanger ? 'rgba(255,51,102,0.6)' : isInsert ? 'rgba(0,255,200,0.6)' : 'var(--border)'
   const bg        = isDanger ? 'rgba(255,51,102,0.10)' : isInsert ? 'rgba(0,255,200,0.10)' : 'transparent'
   const glow      = isDanger ? '0 0 16px rgba(255,51,102,0.25)' : isInsert ? '0 0 16px rgba(0,255,200,0.25)' : 'none'
@@ -252,7 +147,7 @@ function StaticStackCell({ value, depth, variant, ghost = false, roleLabel = '',
   return (
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10, position: 'relative' }}>
       <div style={{
-        fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-dim)',
+        fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-secondary)',
         opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em',
         width: 16, textAlign: 'right', flexShrink: 0,
       }}>
@@ -296,9 +191,12 @@ function StaticStackCell({ value, depth, variant, ghost = false, roleLabel = '',
 
 /* ── Main scene ────────────────────────────────── */
 
-let historyId = 0
-
 export default function StackScene() {
+  const { next: nextItemId, reset: resetItemId } = useIncrementingId()
+  const { next: nextHistoryId, reset: resetHistoryId } = useIncrementingId()
+  const makeItem = useCallback((value) => ({ id: nextItemId(), value }), [nextItemId])
+  const makeItems = useCallback((names) => names.map(makeItem), [makeItem])
+
   const [items, setItems] = useState(() => makeItems(INITIAL_NAMES))
   const [popover, setPopover] = useState(null)
   const [history, setHistory] = useState([])
@@ -306,10 +204,13 @@ export default function StackScene() {
   const [highlightedIdx, setHighlightedIdx] = useState(null)
 
   const insertPoolIdx = useRef(0)
-  const containerRef = useRef(null)
 
   const [tried, setTried] = useState({ any: false, popped: false, pushed: false, count: 0 })
   const [lastOp, setLastOp] = useState(null)
+
+  const appendHistory = useCallback((entry) => {
+    setHistory(prev => [...prev, { id: nextHistoryId(), ...entry }])
+  }, [nextHistoryId])
 
   const nextInsertName = useCallback(() => {
     const name = INSERT_NAMES[insertPoolIdx.current % INSERT_NAMES.length]
@@ -331,12 +232,12 @@ export default function StackScene() {
     setTimeout(() => {
       setHighlightedIdx(null)
       setItems(prev => prev.slice(0, -1))
-      setHistory(prev => [...prev, { id: historyId++, action: 'Pop', label, cost, costText: 'O(1) · top' }])
+      appendHistory({ action: 'Pop', label, cost, costText: 'O(1) · top' })
     }, 150)
 
     setTried(prev => ({ ...prev, any: true, popped: true, count: prev.count + 1 }))
     setLastOp({ action: 'Pop', label })
-  }, [items])
+  }, [appendHistory, items])
 
   /* ── Execute Push ── */
   const executePush = useCallback(() => {
@@ -350,14 +251,15 @@ export default function StackScene() {
     setHighlightedIdx(items.length)
     setTimeout(() => setHighlightedIdx(null), 400)
 
-    setHistory(prev => [...prev, { id: historyId++, action: 'Push', label: name, cost, costText: 'O(1) · top' }])
+    appendHistory({ action: 'Push', label: name, cost, costText: 'O(1) · top' })
     setTried(prev => ({ ...prev, any: true, pushed: true, count: prev.count + 1 }))
     setLastOp({ action: 'Push', label: name })
-  }, [items, nextInsertName])
+  }, [appendHistory, items, makeItem, nextInsertName])
 
   /* ── Reset ── */
   const handleReset = useCallback(() => {
-    resetIds()
+    resetItemId()
+    resetHistoryId()
     insertPoolIdx.current = 0
     setItems(makeItems(INITIAL_NAMES))
     setPopover(null)
@@ -366,7 +268,7 @@ export default function StackScene() {
     setHighlightedIdx(null)
     setTried({ any: false, popped: false, pushed: false, count: 0 })
     setLastOp(null)
-  }, [])
+  }, [makeItems, resetHistoryId, resetItemId])
 
   /* ── Cell click → popover ── */
   const handleCellClick = useCallback((arrayIndex, event) => {
@@ -380,16 +282,10 @@ export default function StackScene() {
     })
   }, [items])
 
-  /* ── Keyboard shortcuts ── */
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.target.tagName === 'INPUT') return
-      if (e.key === 'Escape') setPopover(null)
-      if (e.key === 'r' || e.key === 'R') handleReset()
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [handleReset])
+  useSceneKeyboard({
+    onClose: () => setPopover(null),
+    onReset: handleReset,
+  })
 
   /* ── Derived state ── */
   const isEmpty = items.length === 0
@@ -397,46 +293,30 @@ export default function StackScene() {
   const displayItems = [...items].reverse()
   const buriedCount = Math.max(0, items.length - 1)
   const statusText = lastOp ? 'direct top access · O(1)' : 'top-only access · O(1)'
+  const toolbar = (
+    <>
+      <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
+      <CtrlButton label="Push" small onClick={executePush} />
+    </>
+  )
 
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      <Grid />
-
-      {/* Header */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        padding: '24px var(--canvas-pad) 0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
-      }}>
-        <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
-            03 — Stack
-          </div>
-          <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            A stack. Only the top is reachable.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Everything below is buried until you remove what{"'"} above.</span>
-          </h2>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
+    <SceneFrame
+      sceneLabel={<><strong>03</strong><span>Stack</span></>}
+      title="A stack. Only the top is reachable."
+      subtitle={"Everything below is buried until you remove what's above."}
+      stats={(
+        <>
           <Counter value={buriedCount} label="buried" />
           <StatusPill tone="accent">{statusText}</StatusPill>
-        </div>
-      </div>
-
-      {/* Nudge */}
-      {nudge && (
-        <div style={{ position: 'relative', zIndex: 1, padding: '12px var(--canvas-pad) 0' }}>
-          <Explainer eyebrow={nudge.eyebrow} text={nudge.text} detail={nudge.detail} tone={nudge.tone} />
-        </div>
+        </>
       )}
-
-      {/* Canvas */}
-      <div style={{
-        position: 'relative', zIndex: 1, flex: 1,
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: snapshot ? 'flex-start' : 'center',
-        padding: '16px var(--canvas-pad)', overflow: 'auto',
-      }}>
+      explainer={nudge ? <Explainer eyebrow={nudge.eyebrow} text={nudge.text} detail={nudge.detail} tone={nudge.tone} /> : null}
+      toolbar={toolbar}
+      history={history.length > 0 ? <OperationHistory history={history} /> : null}
+      align={snapshot ? 'top' : 'center'}
+    >
+      <div className={`${sceneStyles.stageColumn} ${snapshot ? sceneStyles.stageTop : sceneStyles.stageCenter}`}>
         {snapshot ? (
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 0, justifyContent: 'center', width: '100%' }}>
             {/* Before */}
@@ -446,7 +326,7 @@ export default function StackScene() {
               transition={{ duration: 0.25 }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
             >
-              <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6, marginBottom: 4 }}>Before</div>
+              <div className={sceneStyles.snapshotLabel} style={{ marginBottom: 4 }}>Before</div>
               {snapshot.action === 'Push' && (
                 <StaticStackCell
                   key="push-slot"
@@ -474,7 +354,7 @@ export default function StackScene() {
 
             {/* After */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6, marginBottom: 4 }}>After</div>
+              <div className={sceneStyles.snapshotLabel} style={{ marginBottom: 4 }}>After</div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <AnimatePresence mode="popLayout">
                   {displayItems.map((item, displayIdx) => {
@@ -495,10 +375,10 @@ export default function StackScene() {
                         highlighted={highlightedIdx === arrayIdx} diffState={diffState}
                         onClick={(e) => handleCellClick(arrayIdx, e)} />
                     )
-                  })}
+                })}
                 </AnimatePresence>
                 {items.length === 0 && (
-                  <div style={{ padding: '12px 24px', border: '1px dashed var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-dim)', fontSize: 'var(--size-sm)' }}>empty</div>
+                  <div className={sceneStyles.inlineEmptyState}>empty</div>
                 )}
               </div>
             </div>
@@ -517,9 +397,9 @@ export default function StackScene() {
             </AnimatePresence>
             {isEmpty && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                style={{ padding: '24px 40px', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--text-dim)', fontSize: 'var(--size-sm)' }}>
+                className={sceneStyles.emptyState}>
                 <span>Stack is empty</span>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div className={sceneStyles.emptyActions}>
                   <CtrlButton label="Reset" small onClick={handleReset} shortcut="R" />
                   <CtrlButton label="Push" small onClick={executePush} />
                 </div>
@@ -531,29 +411,40 @@ export default function StackScene() {
         {/* Popover */}
         <AnimatePresence>
           {popover && (
-            <StackPopover isTop={popover.depth === 0} depth={popover.depth} value={popover.value}
+            <CellPopover
+              eyebrow={popover.depth === 0 ? 'Top of stack' : `Depth ${popover.depth}`}
+              title={`"${popover.value}"`}
               position={{ x: popover.x, y: popover.y }}
-              onPop={executePop} onPush={executePush} onClose={() => setPopover(null)} />
+              rows={[
+                ...(popover.depth === 0
+                  ? [{
+                      label: 'Pop',
+                      preview: 'Remove the top item. Nothing beneath it has to move.',
+                      cost: 0,
+                      onClick: executePop,
+                      icon: '-',
+                    }]
+                  : [{
+                      label: 'Pop blocked',
+                      preview: `Buried under ${popover.depth} item${popover.depth !== 1 ? 's' : ''}. You need to clear ${popover.depth === 1 ? 'it' : 'them'} first.`,
+                      cost: popover.depth,
+                      costLabel: `${popover.depth} pop${popover.depth !== 1 ? 's' : ''} first`,
+                      icon: '!',
+                      disabled: true,
+                    }]),
+                {
+                  label: 'Push',
+                  preview: 'Add a new item on top without touching the buried ones.',
+                  cost: 0,
+                  onClick: executePush,
+                  icon: '+',
+                },
+              ]}
+              onClose={() => setPopover(null)}
+            />
           )}
         </AnimatePresence>
-
-        {history.length > 0 && (
-          <div style={{ marginTop: 24, width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <OperationHistory history={history} />
-          </div>
-        )}
       </div>
-
-      {/* Controls */}
-      <div style={{
-        position: 'relative', zIndex: 1, borderTop: '1px solid var(--border)',
-        padding: '12px var(--canvas-pad) 16px',
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-        background: 'linear-gradient(180deg, rgba(10,10,15,0), rgba(10,10,15,0.25))',
-      }}>
-        <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
-        <CtrlButton label="Push" small onClick={executePush} />
-      </div>
-    </div>
+    </SceneFrame>
   )
 }

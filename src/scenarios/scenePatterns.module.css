@@ -1,0 +1,101 @@
+.stageColumn {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.stageCenter {
+  justify-content: center;
+}
+
+.stageTop {
+  justify-content: flex-start;
+}
+
+.snapshotWrap {
+  margin-bottom: 0.625rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.snapshotLabel {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.rowScroller {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  justify-content: center;
+  padding: 0 0.35rem 0.2rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.row {
+  display: flex;
+  gap: var(--cell-gap);
+  align-items: flex-end;
+  justify-content: center;
+  width: max-content;
+}
+
+.rowTop {
+  align-items: flex-start;
+}
+
+.rowNoGap {
+  gap: 0;
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  border-left: 1px dashed var(--border);
+}
+
+.emptyState {
+  padding: 24px 40px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: var(--size-sm);
+}
+
+.emptyActions {
+  display: flex;
+  gap: 8px;
+}
+
+.inlineEmptyState {
+  padding: 12px 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--size-sm);
+}
+
+.treeScroller {
+  width: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 0.2rem;
+  -webkit-overflow-scrolling: touch;
+}

@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
-import Grid from '../../components/Grid'
 import Counter from '../../components/Counter'
 import Explainer from '../../components/Explainer'
 import CtrlButton from '../../components/CtrlButton'
 import StatusPill from '../../components/StatusPill'
 import CellPopover from '../../components/CellPopover'
 import OperationHistory from '../../components/OperationHistory'
+import SceneFrame from '../../components/SceneFrame'
+import moveFocusByArrow from '../../hooks/moveFocusByArrow'
+import useIncrementingId from '../../hooks/useIncrementingId'
+import useSceneKeyboard from '../../hooks/useSceneKeyboard'
 import { getDeleteCost, getInsertCost } from '../../structures/linkedList'
+import sceneStyles from '../scenePatterns.module.css'
 
 /* ── Constants ─────────────────────────────────── */
 
@@ -16,13 +20,6 @@ const INSERT_NAMES = ['Ash', 'Rune', 'Flux', 'Dew', 'Coda', 'Wren', 'Lux', 'Byte
 
 const TRAVERSE_DELAY_PER_NODE = 0.12  // seconds per node in the traversal wave
 const TRAVERSE_BASE_DURATION = 0.3    // settle time
-
-/* ── ID generator ── */
-
-let nextId = 0
-function makeItem(value) { return { id: nextId++, value } }
-function makeItems(names) { return names.map(makeItem) }
-function resetIds() { nextId = 0 }
 
 /* ── Nudge logic ── */
 
@@ -65,7 +62,7 @@ function Arrow({ highlighted }) {
 
 /* ── ListNode ── */
 
-function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onClick, highlighted, diffState }) {
+function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onClick, highlighted, diffState, disabled = false }) {
   const isNew = diffState === 'new'
   const isRewired = diffState === 'rewired'
   const isPromotedHead = diffState === 'promoted-head'
@@ -90,6 +87,11 @@ function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onCl
   return (
     <motion.div
       layout
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-label={`Linked list node ${value} at position ${index}${isHead ? ', head of list' : ''}${isTail ? ', tail of list' : ''}`}
+      data-nav-group="list-nodes"
+      data-nav-index={index}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{
         opacity: traversed ? [0.4, 1] : 1,
@@ -105,12 +107,25 @@ function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onCl
         opacity: traversed ? { delay: traverseDelay, duration: 0.25 } : undefined,
         borderColor: traversed ? { delay: traverseDelay, duration: 0.4 } : undefined,
       }}
-      onClick={onClick}
-      whileHover={{ scale: 1.05, borderColor: 'var(--accent)' }}
-      whileTap={{ scale: 0.97 }}
+      onClick={disabled ? undefined : onClick}
+      onKeyDown={(event) => {
+        if (disabled) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick(event)
+          return
+        }
+        moveFocusByArrow(event, {
+          group: 'list-nodes',
+          index,
+          bindings: { ArrowLeft: -1, ArrowRight: 1 },
+        })
+      }}
+      whileHover={disabled ? {} : { scale: 1.05, borderColor: 'var(--accent)' }}
+      whileTap={disabled ? {} : { scale: 0.97 }}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-        cursor: 'pointer', position: 'relative',
+        cursor: disabled ? 'default' : 'pointer', position: 'relative',
       }}
     >
       {/* Index label */}
@@ -126,7 +141,7 @@ function ListNode({ value, index, isHead, isTail, traversed, traverseDelay, onCl
       {/* Head/Tail label */}
       <div style={{
         fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: isHead ? 'var(--accent)' : isTail ? 'var(--text-dim)' : 'transparent',
+        color: isHead ? 'var(--accent)' : isTail ? 'var(--text-secondary)' : 'transparent',
         opacity: 0.7, minHeight: 14,
       }}>
         {isHead ? 'head' : isTail ? 'tail' : ''}
@@ -156,7 +171,7 @@ function StaticNode({ value, index, variant, isHead, isTail }) {
   const isDanger = variant === 'danger'
   const isInsert = variant === 'insert'
   const isTarget = isDanger || isInsert
-  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-dim)'
+  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-secondary)'
   const borderClr = isDanger ? 'rgba(255,51,102,0.6)' : isInsert ? 'rgba(0,255,200,0.6)' : 'var(--border)'
   const bg        = isDanger ? 'rgba(255,51,102,0.10)' : isInsert ? 'rgba(0,255,200,0.10)' : 'transparent'
   const glow      = isDanger ? '0 0 16px rgba(255,51,102,0.25)' : isInsert ? '0 0 16px rgba(0,255,200,0.25)' : 'none'
@@ -166,12 +181,12 @@ function StaticNode({ value, index, variant, isHead, isTail }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
       position: 'relative',
     }}>
-      <div style={{ fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-dim)', opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em' }}>
+      <div style={{ fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-secondary)', opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em' }}>
         {index}
       </div>
       <div style={{
         fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: isHead ? 'var(--accent)' : isTail ? 'var(--text-dim)' : 'transparent',
+        color: isHead ? 'var(--accent)' : isTail ? 'var(--text-secondary)' : 'transparent',
         opacity: 0.4, minHeight: 14,
       }}>
         {isHead ? 'head' : isTail ? 'tail' : ''}
@@ -227,9 +242,12 @@ function StaticArrow() {
 
 /* ── Main scene ────────────────────────────────── */
 
-let historyId = 0
-
 export default function LinkedListScene() {
+  const { next: nextItemId, reset: resetItemId } = useIncrementingId()
+  const { next: nextHistoryId, reset: resetHistoryId } = useIncrementingId()
+  const makeItem = useCallback((value) => ({ id: nextItemId(), value }), [nextItemId])
+  const makeItems = useCallback((names) => names.map(makeItem), [makeItem])
+
   const [items, setItems] = useState(() => makeItems(INITIAL_NAMES))
   const [popover, setPopover] = useState(null)
   const [traversing, setTraversing] = useState(false)
@@ -254,6 +272,10 @@ export default function LinkedListScene() {
   }, [])
 
   useEffect(() => clearTraverseTimer, [clearTraverseTimer])
+
+  const appendHistory = useCallback((entry) => {
+    setHistory(prev => [...prev, { id: nextHistoryId(), ...entry }])
+  }, [nextHistoryId])
 
   const nextInsertName = useCallback(() => {
     const name = INSERT_NAMES[insertPoolIdx.current % INSERT_NAMES.length]
@@ -298,7 +320,7 @@ export default function LinkedListScene() {
       setItems(prev => prev.filter((_, i) => i !== index))
 
       startTraverse(index, cost, () => {
-        setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${index}` }])
+        appendHistory({ action: 'Delete', label, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${index}` })
       })
     }, removeDelay)
 
@@ -316,7 +338,7 @@ export default function LinkedListScene() {
       count: prev.count + 1,
     }))
     setLastOp({ action: 'Delete', index, cost })
-  }, [items, startTraverse])
+  }, [appendHistory, items, startTraverse])
 
   const executeInsertBefore = useCallback((index) => {
     const cost = getInsertCost(items.length, index)
@@ -334,13 +356,13 @@ export default function LinkedListScene() {
     })
 
     startTraverse(index, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${index}` }])
+      appendHistory({ action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${index}` })
     })
     setHighlightedIdx(index)
 
     setTried(prev => ({ ...prev, any: true, insert: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', index, cost })
-  }, [items, nextInsertName, startTraverse])
+  }, [appendHistory, items, makeItem, nextInsertName, startTraverse])
 
   const executeInsertAfter = useCallback((index) => {
     const insertIdx = index + 1
@@ -359,13 +381,13 @@ export default function LinkedListScene() {
     })
 
     startTraverse(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${insertIdx}` }])
+      appendHistory({ action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${insertIdx}` })
     })
     setHighlightedIdx(insertIdx)
 
     setTried(prev => ({ ...prev, any: true, insert: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', index: insertIdx, cost })
-  }, [items, nextInsertName, startTraverse])
+  }, [appendHistory, items, makeItem, nextInsertName, startTraverse])
 
   const executeInsertEnd = useCallback(() => {
     const insertIdx = items.length
@@ -380,19 +402,20 @@ export default function LinkedListScene() {
     setHighlightedIdx(insertIdx)
 
     startTraverse(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${insertIdx}` }])
+      appendHistory({ action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} traversal step${cost !== 1 ? 's' : ''}`, location: `at node ${insertIdx}` })
       setHighlightedIdx(null)
     })
 
     setTried(prev => ({ ...prev, any: true, insert: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', index: insertIdx, cost })
-  }, [items, nextInsertName, startTraverse])
+  }, [appendHistory, items, makeItem, nextInsertName, startTraverse])
 
   /* ── Reset ── */
 
   const handleReset = useCallback(() => {
     clearTraverseTimer()
-    resetIds()
+    resetItemId()
+    resetHistoryId()
     insertPoolIdx.current = 0
     setItems(makeItems(INITIAL_NAMES))
     setPopover(null)
@@ -405,7 +428,7 @@ export default function LinkedListScene() {
     setSnapshot(null)
     setTried({ any: false, front: false, end: false, middle: false, insert: false, frontCost: 0, endCost: 0, count: 0 })
     setLastOp(null)
-  }, [clearTraverseTimer])
+  }, [clearTraverseTimer, makeItems, resetHistoryId, resetItemId])
 
   /* ── Node click ── */
 
@@ -420,20 +443,10 @@ export default function LinkedListScene() {
     })
   }, [traversing])
 
-  /* ── Keyboard shortcuts ── */
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.target.tagName === 'INPUT') return
-      switch (e.key) {
-        case 'Escape': setPopover(null); break
-        case 'r': case 'R': handleReset(); break
-        default: break
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [handleReset])
+  useSceneKeyboard({
+    onClose: () => setPopover(null),
+    onReset: handleReset,
+  })
 
   /* ── Derived state ── */
 
@@ -445,30 +458,22 @@ export default function LinkedListScene() {
     : `${ops} step${ops !== 1 ? 's' : ''} · O(n)`
 
   const nudge = getNudge(tried, lastOp)
+  const toolbar = (
+    <>
+      <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
+      <CtrlButton label="Insert at tail" small disabled={traversing} onClick={executeInsertEnd} />
+    </>
+  )
 
   /* ── Render ── */
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      <Grid />
-
-      {/* ── Header ── */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        padding: '24px var(--canvas-pad) 0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
-      }}>
-        <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
-            02 — Linked List
-          </div>
-          <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            A linked list chains {promptCount} nodes together.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>No indexes. To reach a node, walk from the head.</span>
-          </h2>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
+    <SceneFrame
+      sceneLabel={<><strong>02</strong><span>Linked List</span></>}
+      title={`A linked list chains ${promptCount} nodes together.`}
+      subtitle="No indexes. To reach a node, walk from the head."
+      stats={(
+        <>
           <Counter
             value={ops}
             danger={costTone === 'danger'}
@@ -477,24 +482,14 @@ export default function LinkedListScene() {
             animateDuration={Math.max(0.3, (ops * TRAVERSE_DELAY_PER_NODE) + TRAVERSE_BASE_DURATION)}
           />
           <StatusPill tone={costTone}>{costText}</StatusPill>
-        </div>
-      </div>
-
-      {/* ── Nudge ── */}
-      {nudge && (
-        <div style={{ position: 'relative', zIndex: 1, padding: '12px var(--canvas-pad) 0' }}>
-          <Explainer eyebrow={nudge.eyebrow} text={nudge.text} detail={nudge.detail} tone={nudge.tone} />
-        </div>
+        </>
       )}
-
-      {/* ── Canvas ── */}
-      <div style={{
-        position: 'relative', zIndex: 1, flex: 1,
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: snapshot ? 'flex-start' : 'center',
-        padding: '16px var(--canvas-pad)',
-        overflow: 'auto',
-      }}>
+      explainer={nudge ? <Explainer eyebrow={nudge.eyebrow} text={nudge.text} detail={nudge.detail} tone={nudge.tone} /> : null}
+      toolbar={toolbar}
+      history={history.length > 0 ? <OperationHistory history={history} /> : null}
+      align={snapshot ? 'top' : 'center'}
+    >
+      <div className={`${sceneStyles.stageColumn} ${snapshot ? sceneStyles.stageTop : sceneStyles.stageCenter}`}>
         <>
           {/* ── Before row (snapshot) ── */}
           <AnimatePresence>
@@ -504,113 +499,113 @@ export default function LinkedListScene() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.25 }}
-                style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}
+                className={sceneStyles.snapshotWrap}
               >
-                <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
-                  Before
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
-                  {snapshot.items.map((item, i) => (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center' }}>
-                      <StaticNode
-                        value={item.value}
-                        index={i}
-                        variant={i === snapshot.targetIndex ? (snapshot.action === 'Delete' ? 'danger' : 'insert') : null}
-                        isHead={i === 0}
-                        isTail={i === snapshot.items.length - 1}
-                      />
-                      {i < snapshot.items.length - 1 && <StaticArrow />}
-                    </div>
-                  ))}
+                <div className={sceneStyles.snapshotLabel}>Before</div>
+                <div className={sceneStyles.rowScroller}>
+                  <div className={`${sceneStyles.row} ${sceneStyles.rowNoGap}`}>
+                    {snapshot.items.map((item, i) => (
+                      <div key={item.id} style={{ display: 'flex', alignItems: 'center' }}>
+                        <StaticNode
+                          value={item.value}
+                          index={i}
+                          variant={i === snapshot.targetIndex ? (snapshot.action === 'Delete' ? 'danger' : 'insert') : null}
+                          isHead={i === 0}
+                          isTail={i === snapshot.items.length - 1}
+                        />
+                        {i < snapshot.items.length - 1 && <StaticArrow />}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div style={{ width: 1, height: 16, borderLeft: '1px dashed var(--border)' }} />
+                <div className={sceneStyles.divider} />
 
-                <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
-                  After
-                </div>
+                <div className={sceneStyles.snapshotLabel}>After</div>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* ── Live chain ── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, position: 'relative' }}>
-            <AnimatePresence mode="popLayout">
-              {items.map((item, index) => {
-                let diffState = null
-                if (snapshot) {
-                  const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
-                  if (snapshot.action === 'Insert') {
-                    if (prevIndex === -1) diffState = 'new'
-                    else if (snapshot.targetIndex > 0 && index === snapshot.targetIndex - 1) diffState = 'rewired'
-                  } else if (snapshot.action === 'Delete') {
-                    if (snapshot.targetIndex === 0) {
-                      if (index === 0 && prevIndex === 1) diffState = 'promoted-head'
-                    } else if (index === snapshot.targetIndex - 1) {
-                      diffState = 'rewired'
+          <div className={sceneStyles.rowScroller}>
+            <div className={`${sceneStyles.row} ${sceneStyles.rowNoGap}`} style={{ position: 'relative' }}>
+              <AnimatePresence mode="popLayout">
+                {items.map((item, index) => {
+                  let diffState = null
+                  if (snapshot) {
+                    const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
+                    if (snapshot.action === 'Insert') {
+                      if (prevIndex === -1) diffState = 'new'
+                      else if (snapshot.targetIndex > 0 && index === snapshot.targetIndex - 1) diffState = 'rewired'
+                    } else if (snapshot.action === 'Delete') {
+                      if (snapshot.targetIndex === 0) {
+                        if (index === 0 && prevIndex === 1) diffState = 'promoted-head'
+                      } else if (index === snapshot.targetIndex - 1) {
+                        diffState = 'rewired'
+                      }
                     }
                   }
-                }
 
-                const isTraversed = traversing && traverseTarget != null && index < traverseTarget
-                const isRelinkedArrow = snapshot
-                  ? snapshot.action === 'Insert'
-                    ? snapshot.targetIndex === 0
-                      ? index === 0
-                      : index === snapshot.targetIndex - 1 || index === snapshot.targetIndex
-                    : snapshot.action === 'Delete'
-                      ? snapshot.targetIndex > 0 && index === snapshot.targetIndex - 1
-                      : false
-                  : false
+                  const isTraversed = traversing && traverseTarget != null && index < traverseTarget
+                  const isRelinkedArrow = snapshot
+                    ? snapshot.action === 'Insert'
+                      ? snapshot.targetIndex === 0
+                        ? index === 0
+                        : index === snapshot.targetIndex - 1 || index === snapshot.targetIndex
+                      : snapshot.action === 'Delete'
+                        ? snapshot.targetIndex > 0 && index === snapshot.targetIndex - 1
+                        : false
+                    : false
 
-                return (
-                  <div key={item.id} style={{ display: 'flex', alignItems: 'center' }}>
-                    <ListNode
-                      value={item.value}
-                      index={index}
-                      isHead={index === 0}
-                      isTail={index === items.length - 1}
-                      traversed={isTraversed}
-                      traverseDelay={index * TRAVERSE_DELAY_PER_NODE}
-                      highlighted={highlightedIdx === index}
-                      diffState={diffState}
-                      onClick={(e) => handleNodeClick(index, e)}
-                    />
-                    {index < items.length - 1 && (
-                      <Arrow highlighted={isTraversed || (traversing && index === traverseTarget - 1) || isRelinkedArrow} />
-                    )}
-                  </div>
-                )
-              })}
-            </AnimatePresence>
+                  return (
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'center' }}>
+                      <ListNode
+                        value={item.value}
+                        index={index}
+                        isHead={index === 0}
+                        isTail={index === items.length - 1}
+                        traversed={isTraversed}
+                        traverseDelay={index * TRAVERSE_DELAY_PER_NODE}
+                        highlighted={highlightedIdx === index}
+                        diffState={diffState}
+                        disabled={traversing}
+                        onClick={(e) => handleNodeClick(index, e)}
+                      />
+                      {index < items.length - 1 && (
+                        <Arrow highlighted={isTraversed || (traversing && index === traverseTarget - 1) || isRelinkedArrow} />
+                      )}
+                    </div>
+                  )
+                })}
+              </AnimatePresence>
 
-            {/* Popover */}
-            <AnimatePresence>
-              {popover && !traversing && (
-                <CellPopover
-                  cellIndex={popover.index}
-                  position={{ x: popover.x, y: popover.y }}
-                  deleteCost={getDeleteCost(items.length, popover.index)}
-                  insertBeforeCost={getInsertCost(items.length, popover.index)}
-                  insertAfterCost={getInsertCost(items.length, popover.index + 1)}
-                  costUnit="step"
-                  onDelete={() => executeDelete(popover.index)}
-                  onInsertBefore={() => executeInsertBefore(popover.index)}
-                  onInsertAfter={() => executeInsertAfter(popover.index)}
-                  onClose={() => setPopover(null)}
-                />
-              )}
-            </AnimatePresence>
+              <AnimatePresence>
+                {popover && !traversing && (
+                  <CellPopover
+                    cellIndex={popover.index}
+                    position={{ x: popover.x, y: popover.y }}
+                    deleteCost={getDeleteCost(items.length, popover.index)}
+                    insertBeforeCost={getInsertCost(items.length, popover.index)}
+                    insertAfterCost={getInsertCost(items.length, popover.index + 1)}
+                    costUnit="step"
+                    onDelete={() => executeDelete(popover.index)}
+                    onInsertBefore={() => executeInsertBefore(popover.index)}
+                    onInsertAfter={() => executeInsertAfter(popover.index)}
+                    onClose={() => setPopover(null)}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Null terminator */}
           {!isEmpty && (
             <div style={{
               display: 'flex', alignItems: 'center', marginLeft: 4,
-              position: 'absolute', right: 'var(--canvas-pad)', top: '50%', transform: 'translateY(-50%)',
+              position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
             }}>
               <Arrow highlighted={false} />
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', opacity: 0.5, fontStyle: 'italic' }}>null</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.5, fontStyle: 'italic' }}>null</span>
             </div>
           )}
 
@@ -619,42 +614,18 @@ export default function LinkedListScene() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              style={{
-                padding: '24px 40px',
-                border: '1px dashed var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                color: 'var(--text-dim)', fontSize: 'var(--size-sm)',
-              }}
+              className={sceneStyles.emptyState}
             >
               <span>List is empty — head → null</span>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className={sceneStyles.emptyActions}>
                 <CtrlButton label="Reset" small onClick={handleReset} shortcut="R" />
                 <CtrlButton label="Insert at head" small onClick={() => executeInsertBefore(0)} />
               </div>
             </motion.div>
           )}
 
-          {/* History */}
-          {history.length > 0 && (
-            <div style={{ marginTop: 24, width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <OperationHistory history={history} />
-            </div>
-          )}
         </>
       </div>
-
-      {/* ── Controls ── */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        borderTop: '1px solid var(--border)',
-        padding: '12px var(--canvas-pad) 16px',
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-        background: 'linear-gradient(180deg, rgba(10,10,15,0), rgba(10,10,15,0.25))',
-      }}>
-        <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
-        <CtrlButton label="Insert at tail" small disabled={traversing} onClick={executeInsertEnd} />
-      </div>
-    </div>
+    </SceneFrame>
   )
 }

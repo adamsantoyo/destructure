@@ -1,19 +1,12 @@
+import styles from './Grid.module.css'
+
 /* Dot-grid background SVG */
-export default function Grid() {
+export default function Grid({ className = '' }) {
   return (
-    <svg
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 0,
-      }}
-    >
+    <svg className={`${styles.grid} ${className}`.trim()}>
       <defs>
         <pattern id="dot-grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="#1A1A2E" />
+          <circle cx="1" cy="1" r="1" fill="var(--grid-dot)" />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#dot-grid)" />

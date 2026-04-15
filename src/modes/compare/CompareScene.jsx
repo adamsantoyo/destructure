@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
-import Grid from '../../components/Grid'
 import CtrlButton from '../../components/CtrlButton'
+import SceneFrame from '../../components/SceneFrame'
+import useSceneKeyboard from '../../hooks/useSceneKeyboard'
 import * as arrayOps from '../../structures/array'
 import * as listOps from '../../structures/linkedList'
 
@@ -110,7 +111,7 @@ function ArrayTrack({ items, step, done }) {
         {items.map((val, idx) => (
           <div key={`idx-${idx}`} style={{
             width: 'var(--cell-w)', textAlign: 'center',
-            fontSize: 'var(--size-xs)', color: 'var(--text-dim)', opacity: 0.5,
+            fontSize: 'var(--size-xs)', color: 'var(--text-secondary)', opacity: 0.5,
             letterSpacing: '0.05em',
           }}>
             {idx}
@@ -188,7 +189,7 @@ function ListTrack({ items, step, done }) {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                 <div style={{
                   fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
-                  color: isHead ? 'var(--accent)' : isTail ? 'var(--text-dim)' : 'transparent',
+                  color: isHead ? 'var(--accent)' : isTail ? 'var(--text-secondary)' : 'transparent',
                   opacity: 0.6, minHeight: 14,
                 }}>
                   {isHead ? 'head' : isTail ? 'tail' : ''}
@@ -233,7 +234,7 @@ function OpsCounter({ value, label, color }) {
         style={{ fontSize: 'var(--size-counter)', fontWeight: 700, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </motion.span>
-      <span style={{ fontSize: 'var(--size-xs)', color: 'var(--text-dim)', letterSpacing: '0.1em' }}>
+      <span style={{ fontSize: 'var(--size-xs)', color: 'var(--text-secondary)', letterSpacing: '0.1em' }}>
         {label}
       </span>
     </div>
@@ -282,7 +283,7 @@ function TrackCard({ title, ops, opsLabel, step, done, explanation, children }) 
             </motion.span>
           )}
         </div>
-        <OpsCounter value={ops} label={opsLabel} color={done ? doneColor : 'var(--text-dim)'} />
+        <OpsCounter value={ops} label={opsLabel} color={done ? doneColor : 'var(--text-secondary)'} />
       </div>
       <div style={{ padding: '4px 0 8px' }}>{children}</div>
       <AnimatePresence mode="wait">
@@ -292,7 +293,7 @@ function TrackCard({ title, ops, opsLabel, step, done, explanation, children }) 
             transition={{ duration: 0.2 }}
             style={{
               marginTop: 8, padding: '10px 14px',
-              fontSize: 'var(--size-sm)', color: done ? 'var(--accent)' : 'var(--text-dim)',
+              fontSize: 'var(--size-sm)', color: done ? 'var(--accent)' : 'var(--text-secondary)',
               fontWeight: done ? 500 : 300, lineHeight: 1.5,
               borderLeft: `3px solid ${done ? 'rgba(0,255,200,0.5)' : 'var(--border)'}`,
               background: done ? 'rgba(0,255,200,0.04)' : 'transparent',
@@ -319,7 +320,7 @@ function ScenarioSelector({ scenarios, activeId, onSelect, disabled }) {
             style={{
               padding: '6px 14px', fontSize: '0.75rem', fontWeight: isActive ? 700 : 400,
               fontFamily: 'var(--font)', letterSpacing: '0.03em',
-              color: isActive ? 'var(--bg)' : 'var(--text-dim)',
+              color: isActive ? 'var(--bg)' : 'var(--text-secondary)',
               background: isActive ? 'var(--accent)' : 'transparent',
               border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
               borderRadius: 'var(--radius-pill)', cursor: disabled ? 'default' : 'pointer',
@@ -407,6 +408,11 @@ export default function CompareScene() {
     setScenarioId(id)
   }
 
+  useSceneKeyboard({
+    onClose: () => setIsPlaying(false),
+    onReset: handleReset,
+  })
+
   /* ── Divergence message ── */
   let divergeMsg = null
   if (scenario.divergeMsg) {
@@ -416,63 +422,47 @@ export default function CompareScene() {
 
   /* ── Render ── */
 
+  const toolbar = (
+    <>
+      <CtrlButton label="Reset" small onClick={handleReset} shortcut="R" disabled={stepIdx === 0} />
+      <CtrlButton label="Step" small onClick={handleStep} disabled={stepIdx >= maxSteps || isPlaying} />
+      {isPlaying ? (
+        <CtrlButton label="Pause" small onClick={() => setIsPlaying(false)} />
+      ) : (
+        <CtrlButton
+          label={stepIdx === 0 ? 'Auto' : stepIdx >= maxSteps ? 'Done' : 'Resume'}
+          small
+          onClick={() => setIsPlaying(true)}
+          disabled={stepIdx >= maxSteps}
+        />
+      )}
+    </>
+  )
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      <Grid />
-
-      {/* ── Header ── */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        padding: '24px var(--canvas-pad) 0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-      }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: '0.7rem', color: 'var(--accent)',
-            letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8,
-          }}>
-            Compare Mode
-          </div>
-          <h2 style={{
-            fontSize: 'var(--size-prompt)', fontWeight: 700,
-            color: 'var(--text)', lineHeight: 1.35,
-            fontFamily: 'var(--font)', margin: '0 0 16px',
-          }}>
-            {scenario.title}<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: '1rem' }}>
-              {scenario.subtitle}
-            </span>
-          </h2>
-          <ScenarioSelector scenarios={SCENARIOS} activeId={scenarioId} onSelect={handleScenarioChange} disabled={isPlaying} />
+    <SceneFrame
+      sceneLabel={<><strong>Mode</strong><span>Compare</span></>}
+      title={scenario.title}
+      subtitle={scenario.subtitle}
+      stats={(
+        <div style={{
+          fontSize: 'var(--size-xs)',
+          color: 'var(--text-secondary)',
+          letterSpacing: '0.1em',
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          Step {stepIdx} / {maxSteps}
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0, marginLeft: 24 }}>
-          <div style={{
-            fontSize: 'var(--size-xs)', color: 'var(--text-dim)',
-            letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums',
-          }}>
-            Step {stepIdx} / {maxSteps}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <CtrlButton label="Reset" small onClick={handleReset} shortcut="R" disabled={stepIdx === 0} />
-            <CtrlButton label="Step" small onClick={handleStep} disabled={stepIdx >= maxSteps || isPlaying} />
-            {isPlaying ? (
-              <CtrlButton label="Pause" small onClick={() => setIsPlaying(false)} />
-            ) : (
-              <CtrlButton
-                label={stepIdx === 0 ? 'Auto' : stepIdx >= maxSteps ? 'Done' : 'Resume'}
-                small onClick={() => setIsPlaying(true)} disabled={stepIdx >= maxSteps}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Tracks ── */}
+      )}
+      legend={<ScenarioSelector scenarios={SCENARIOS} activeId={scenarioId} onSelect={handleScenarioChange} disabled={isPlaying} />}
+      toolbar={toolbar}
+      align="top"
+    >
       <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        padding: '32px var(--canvas-pad) 24px',
-        gap: 24, overflowY: 'auto', position: 'relative', zIndex: 1,
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
       }}>
         <TrackCard title={scenario.a.label} ops={aOps} opsLabel={scenario.a.opsLabel} step={aStep} done={aDone} explanation={aExplanation}>
           <ArrayTrack items={aState} step={aStep} done={aDone} />
@@ -491,6 +481,6 @@ export default function CompareScene() {
           <ListTrack items={bState} step={bStep} done={bDone} />
         </TrackCard>
       </div>
-    </div>
+    </SceneFrame>
   )
 }

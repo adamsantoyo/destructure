@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
-import Grid from '../../components/Grid'
 import Counter from '../../components/Counter'
 import Explainer from '../../components/Explainer'
 import CtrlButton from '../../components/CtrlButton'
 import StatusPill from '../../components/StatusPill'
 import CellPopover from '../../components/CellPopover'
 import OperationHistory from '../../components/OperationHistory'
+import SceneFrame from '../../components/SceneFrame'
+import Tooltip from '../../components/Tooltip'
+import moveFocusByArrow from '../../hooks/moveFocusByArrow'
+import useIncrementingId from '../../hooks/useIncrementingId'
+import useSceneKeyboard from '../../hooks/useSceneKeyboard'
 import { getDeleteCost, getInsertCost } from '../../structures/array'
+import useUndoStack from '../../hooks/useUndoStack'
+import sceneStyles from '../scenePatterns.module.css'
 
 /* ── Constants ─────────────────────────────────── */
 
@@ -16,13 +22,6 @@ const INSERT_NAMES = ['Ash', 'Rune', 'Flux', 'Dew', 'Coda', 'Wren', 'Lux', 'Byte
 
 const CASCADE_DELAY_PER_CELL = 0.055 // seconds per cell in the domino wave
 const CASCADE_BASE_DURATION = 0.35   // spring settle time per cell
-
-/* ── ID generator ── */
-
-let nextId = 0
-function makeItem(value) { return { id: nextId++, value } }
-function makeItems(names) { return names.map(makeItem) }
-function resetIds() { nextId = 0 }
 
 /* ── Nudge logic ── */
 
@@ -42,12 +41,12 @@ function getNudge(tried, lastOp) {
   if (tried.count < 6) {
     return { tone: 'accent', eyebrow: 'O(n)', text: 'Front = expensive. End = cheap. The array shifts everything behind.', detail: null }
   }
-  return null // nudge fades away after enough ops
+  return { tone: 'muted', eyebrow: 'Tip', text: 'Compare the front, middle, and end. Same delete, different ripple.', detail: null }
 }
 
 /* ── ArrayCell ── */
 
-function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighted, diffState }) {
+function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighted, diffState, showHint }) {
   const staggerDelay = cascading && cascadeOrigin != null
     ? Math.abs(index - cascadeOrigin) * CASCADE_DELAY_PER_CELL
     : 0
@@ -85,6 +84,8 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
       role="button"
       tabIndex={cascading ? -1 : 0}
       aria-label={`Array cell at index ${index} with value ${value}`}
+      data-nav-group="array-cells"
+      data-nav-index={index}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.6, y: -20 }}
@@ -100,7 +101,19 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
         },
       }}
       onClick={cascading ? undefined : onClick}
-      onKeyDown={(e) => !cascading && (e.key === 'Enter' || e.key === ' ') && onClick()}
+      onKeyDown={(event) => {
+        if (cascading) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick(event)
+          return
+        }
+        moveFocusByArrow(event, {
+          group: 'array-cells',
+          index,
+          bindings: { ArrowLeft: -1, ArrowRight: 1 },
+        })
+      }}
       whileHover={cascading ? {} : { scale: 1.05, borderColor: 'var(--accent)' }}
       whileTap={cascading ? {} : { scale: 0.97 }}
       style={{
@@ -124,6 +137,8 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
 
       {/* Cell body */}
       <motion.div
+        animate={showHint ? { boxShadow: ['0 0 0 rgba(61,241,199,0)', '0 0 0 10px rgba(61,241,199,0.08)', '0 0 0 rgba(61,241,199,0)'] } : {}}
+        transition={showHint ? { repeat: Infinity, duration: 1.8 } : {}}
         style={{
           width: 'var(--cell-w)',
           height: 'var(--cell-h)',
@@ -143,6 +158,10 @@ function ArrayCell({ value, index, cascading, cascadeOrigin, onClick, highlighte
       >
         {value}
       </motion.div>
+
+      {showHint && (
+        <Tooltip title="First move" text="Click a cell to reveal the operations you can try here." />
+      )}
     </motion.div>
   )
 }
@@ -155,7 +174,7 @@ function StaticCell({ value, index, variant, shiftDir }) {
   const isTarget  = isDanger || isInsert
   const isShifted = shiftDir === 'left' || shiftDir === 'right'
   // Before row: red = selected target, neutral = everything else
-  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-dim)'
+  const color     = isDanger ? 'var(--danger)' : isInsert ? 'var(--accent)' : 'var(--text-secondary)'
   const borderClr = isDanger ? 'rgba(255,51,102,0.6)' : isInsert ? 'rgba(0,255,200,0.6)' : 'var(--border)'
   const bg        = isDanger ? 'rgba(255,51,102,0.10)' : isInsert ? 'rgba(0,255,200,0.10)' : 'transparent'
   const glow      = isDanger ? '0 0 16px rgba(255,51,102,0.25)' : isInsert ? '0 0 16px rgba(0,255,200,0.25)' : 'none'
@@ -166,7 +185,7 @@ function StaticCell({ value, index, variant, shiftDir }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
       position: 'relative',
     }}>
-      <div style={{ fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-dim)', opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em' }}>
+      <div style={{ fontSize: 'var(--size-xs)', color: isTarget ? color : 'var(--text-secondary)', opacity: isTarget ? 0.9 : 0.4, letterSpacing: '0.05em' }}>
         {index}
       </div>
       <div style={{
@@ -225,7 +244,7 @@ function StaticCell({ value, index, variant, shiftDir }) {
 function StressBar({ count }) {
   return (
     <div style={{ width: '100%', maxWidth: 700, padding: '0 var(--canvas-pad)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 'var(--size-xs)', color: 'var(--text-dim)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 'var(--size-xs)', color: 'var(--text-secondary)' }}>
         <span>{count.toLocaleString()} elements</span>
         <span style={{ color: 'var(--danger)' }}>{(count - 1).toLocaleString()} shifts to delete index 0</span>
       </div>
@@ -243,18 +262,18 @@ function StressBar({ count }) {
             width: 28, height: 22, borderRadius: 3,
             border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '0.5rem', color: i === 0 ? 'var(--danger)' : 'var(--text-dim)',
+            fontSize: '0.5rem', color: i === 0 ? 'var(--danger)' : 'var(--text-secondary)',
             background: i === 0 ? 'rgba(255,51,102,0.08)' : 'transparent',
             opacity: 0.6,
           }}>
             {n.slice(0, 2)}
           </div>
         ))}
-        <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', alignSelf: 'center', marginLeft: 4 }}>
+        <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', alignSelf: 'center', marginLeft: 4 }}>
           × {Math.round(count / 10)}
         </span>
       </div>
-      <div style={{ marginTop: 10, fontSize: 'var(--size-xs)', color: 'var(--text-dim)', textAlign: 'center' }}>
+      <div style={{ marginTop: 10, fontSize: 'var(--size-xs)', color: 'var(--text-secondary)', textAlign: 'center' }}>
         Same rule, bigger array — every element behind index 0 still moves.
       </div>
     </div>
@@ -263,9 +282,12 @@ function StressBar({ count }) {
 
 /* ── Main scene ────────────────────────────────── */
 
-let historyId = 0
+export default function ArrayScene({ onSceneEvent, showFirstCellHint = false, dismissFirstCellHint }) {
+  const { next: nextItemId, peek: peekItemId, set: setItemId, reset: resetItemId } = useIncrementingId()
+  const { next: nextHistoryId, peek: peekHistoryId, set: setHistoryId, reset: resetHistoryId } = useIncrementingId()
+  const makeItem = useCallback((value) => ({ id: nextItemId(), value }), [nextItemId])
+  const makeItems = useCallback((names) => names.map(makeItem), [makeItem])
 
-export default function ArrayScene() {
   const [items, setItems] = useState(() => makeItems(INITIAL_NAMES))
   const [popover, setPopover] = useState(null)        // { index, x, y } | null
   const [cascading, setCascading] = useState(false)
@@ -279,7 +301,7 @@ export default function ArrayScene() {
 
   const insertPoolIdx = useRef(0)
   const cascadeTimer = useRef(null)
-  const containerRef = useRef(null)
+  const undo = useUndoStack()
 
   // Track what user has tried for nudge logic
   const [tried, setTried] = useState({
@@ -293,6 +315,46 @@ export default function ArrayScene() {
   }, [])
 
   useEffect(() => clearCascadeTimer, [clearCascadeTimer])
+
+  const appendHistory = useCallback((entry) => {
+    setHistory(prev => [...prev, { id: nextHistoryId(), ...entry }])
+  }, [nextHistoryId])
+
+  const captureUndoState = useCallback(() => ({
+    items,
+    ops,
+    history,
+    stressMode,
+    highlightedIdx,
+    snapshot,
+    tried,
+    lastOp,
+    insertPoolIdx: insertPoolIdx.current,
+    nextId: peekItemId(),
+    historyId: peekHistoryId(),
+  }), [history, highlightedIdx, items, lastOp, ops, peekHistoryId, peekItemId, snapshot, stressMode, tried])
+
+  const handleUndo = useCallback(() => {
+    const previous = undo.pop()
+    if (!previous) return
+
+    clearCascadeTimer()
+    setItemId(previous.nextId)
+    setHistoryId(previous.historyId)
+    insertPoolIdx.current = previous.insertPoolIdx
+    setItems(previous.items)
+    setPopover(null)
+    setCascading(false)
+    setCascadeOrigin(null)
+    setOps(previous.ops)
+    setAnimateCounter(false)
+    setHistory(previous.history)
+    setStressMode(previous.stressMode)
+    setHighlightedIdx(previous.highlightedIdx)
+    setSnapshot(previous.snapshot)
+    setTried(previous.tried)
+    setLastOp(previous.lastOp)
+  }, [clearCascadeTimer, setHistoryId, setItemId, undo])
 
   /* ── Pick next insert name ── */
   const nextInsertName = useCallback(() => {
@@ -325,6 +387,10 @@ export default function ArrayScene() {
   const executeDelete = useCallback((index) => {
     const cost = getDeleteCost(items.length, index)
     const label = items[index].value
+    const position = index === 0 ? 'front' : index === items.length - 1 ? 'end' : 'middle'
+
+    undo.capture(captureUndoState())
+    dismissFirstCellHint?.()
 
     setSnapshot({ items: [...items], targetIndex: index, action: 'Delete' })
     setPopover(null)
@@ -338,8 +404,7 @@ export default function ArrayScene() {
       setItems(prev => prev.filter((_, i) => i !== index))
 
       startCascade(index, cost, () => {
-        // Add to history after cascade settles
-        setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${index}` }])
+        appendHistory({ action: 'Delete', label, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${index}` })
       })
     }, 150)
 
@@ -358,11 +423,16 @@ export default function ArrayScene() {
       count: prev.count + 1,
     }))
     setLastOp({ action: 'Delete', index, cost })
-  }, [items, startCascade])
+    onSceneEvent?.({ type: 'operation', structure: 'array', action: 'delete', cost, position, complexity: cost === 0 ? 'O(1)' : 'O(n)' })
+  }, [appendHistory, captureUndoState, dismissFirstCellHint, items, onSceneEvent, startCascade, undo])
 
   const executeInsertBefore = useCallback((index) => {
     const cost = getInsertCost(items.length, index)
     const name = nextInsertName()
+    const position = index === 0 ? 'front' : index >= items.length ? 'end' : 'middle'
+
+    undo.capture(captureUndoState())
+    dismissFirstCellHint?.()
 
     setSnapshot({ items: [...items], targetIndex: index, action: 'Insert' })
     setPopover(null)
@@ -376,18 +446,23 @@ export default function ArrayScene() {
     })
 
     startCascade(index, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${index}` }])
+      appendHistory({ action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${index}` })
     })
     setHighlightedIdx(index)
 
     setTried(prev => ({ ...prev, any: true, insert: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', index, cost })
-  }, [items, nextInsertName, startCascade])
+    onSceneEvent?.({ type: 'operation', structure: 'array', action: 'insert', cost, position, complexity: cost === 0 ? 'O(1)' : 'O(n)' })
+  }, [appendHistory, captureUndoState, dismissFirstCellHint, items, makeItem, nextInsertName, onSceneEvent, startCascade, undo])
 
   const executeInsertAfter = useCallback((index) => {
     const insertIdx = index + 1
     const cost = getInsertCost(items.length, insertIdx)
     const name = nextInsertName()
+    const position = insertIdx === items.length ? 'end' : insertIdx === 0 ? 'front' : 'middle'
+
+    undo.capture(captureUndoState())
+    dismissFirstCellHint?.()
 
     setSnapshot({ items: [...items], targetIndex: insertIdx, action: 'Insert' })
     setPopover(null)
@@ -401,18 +476,22 @@ export default function ArrayScene() {
     })
 
     startCascade(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${insertIdx}` }])
+      appendHistory({ action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${insertIdx}` })
     })
     setHighlightedIdx(insertIdx)
 
     setTried(prev => ({ ...prev, any: true, insert: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', index: insertIdx, cost })
-  }, [items, nextInsertName, startCascade])
+    onSceneEvent?.({ type: 'operation', structure: 'array', action: 'insert', cost, position, complexity: cost === 0 ? 'O(1)' : 'O(n)' })
+  }, [appendHistory, captureUndoState, dismissFirstCellHint, items, makeItem, nextInsertName, onSceneEvent, startCascade, undo])
 
   const executeInsertEnd = useCallback(() => {
     const insertIdx = items.length
     const cost = 0
     const name = nextInsertName()
+
+    undo.capture(captureUndoState())
+    dismissFirstCellHint?.()
 
     setSnapshot({ items: [...items], targetIndex: insertIdx, action: 'Insert' })
     setOps(cost)
@@ -422,17 +501,19 @@ export default function ArrayScene() {
     setHighlightedIdx(insertIdx)
 
     startCascade(insertIdx, cost, () => {
-      setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${insertIdx}` }])
+      appendHistory({ action: 'Insert', label: name, cost, costText: cost === 0 ? 'O(1)' : `${cost} shift${cost !== 1 ? 's' : ''}`, location: `at index ${insertIdx}` })
       setHighlightedIdx(null)
     })
 
     setTried(prev => ({ ...prev, any: true, insert: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', index: insertIdx, cost })
-  }, [items, nextInsertName, startCascade])
+    onSceneEvent?.({ type: 'operation', structure: 'array', action: 'insert', cost, position: 'end', complexity: 'O(1)' })
+  }, [appendHistory, captureUndoState, dismissFirstCellHint, items, makeItem, nextInsertName, onSceneEvent, startCascade, undo])
 
   /* ── Stress ── */
 
   const handleStress = useCallback((count) => {
+    undo.capture(captureUndoState())
     clearCascadeTimer()
     setPopover(null)
     setStressMode(count)
@@ -446,13 +527,15 @@ export default function ArrayScene() {
 
     // Counter animates to value, then stop
     setTimeout(() => setAnimateCounter(false), 2500)
-  }, [clearCascadeTimer])
+  }, [captureUndoState, clearCascadeTimer, undo])
 
   /* ── Reset ── */
 
   const handleReset = useCallback(() => {
     clearCascadeTimer()
-    resetIds()
+    undo.clear()
+    resetItemId()
+    resetHistoryId()
     insertPoolIdx.current = 0
     setItems(makeItems(INITIAL_NAMES))
     setPopover(null)
@@ -466,13 +549,14 @@ export default function ArrayScene() {
     setSnapshot(null)
     setTried({ any: false, front: false, end: false, middle: false, insert: false, frontCost: 0, endCost: 0, count: 0 })
     setLastOp(null)
-  }, [clearCascadeTimer])
+  }, [clearCascadeTimer, makeItems, resetHistoryId, resetItemId, undo])
 
   /* ── Cell click ── */
 
   const handleCellClick = useCallback((index, event) => {
     if (cascading) return
     setStressMode(null)
+    dismissFirstCellHint?.()
 
     const rect = event.currentTarget.getBoundingClientRect()
 
@@ -481,28 +565,12 @@ export default function ArrayScene() {
       x: rect.left + rect.width / 2,
       y: rect.bottom + 8,
     })
-  }, [cascading])
+  }, [cascading, dismissFirstCellHint])
 
-  /* ── Keyboard shortcuts ── */
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.target.tagName === 'INPUT') return
-      switch (e.key) {
-        case 'Escape':
-          setPopover(null)
-          break
-        case 'r':
-        case 'R':
-          handleReset()
-          break
-        default:
-          break
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [handleReset])
+  useSceneKeyboard({
+    onClose: () => setPopover(null),
+    onReset: handleReset,
+  })
 
   /* ── Derived state ── */
 
@@ -519,83 +587,87 @@ export default function ArrayScene() {
     ? { tone: 'danger', eyebrow: 'Scale test', text: `Deleting index 0 from ${stressMode.toLocaleString()} elements = ${(stressMode - 1).toLocaleString()} shifts.`, detail: 'Same operation, bigger pain. Reset to keep exploring.' }
     : getNudge(tried, lastOp)
 
+  const snapshotLegend = snapshot ? (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0 4px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(0,255,200,0.8)' }} />
+        unchanged
+      </span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,111,138,0.8)' }} />
+        shifted or new
+      </span>
+    </div>
+  ) : null
+
+  const toolbar = (
+    <>
+      <CtrlButton label="Undo" icon="<" onClick={handleUndo} small disabled={!undo.canUndo || cascading} />
+      <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
+      <CtrlButton label="Insert at end" small disabled={cascading} onClick={executeInsertEnd} />
+      <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Stress
+      </span>
+      <CtrlButton label="100" small disabled={cascading} onClick={() => handleStress(100)} />
+      <CtrlButton label="1,000" small disabled={cascading} onClick={() => handleStress(1000)} />
+      <CtrlButton label="10,000" small disabled={cascading} onClick={() => handleStress(10000)} />
+    </>
+  )
+
   /* ── Render ── */
 
   return (
-    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      <Grid />
-
-      {/* ── Header ── */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        padding: '24px var(--canvas-pad) 0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
-      }}>
-        <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
-            01 — Array
-          </div>
-          <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            An array stores {promptCount} items in a row.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Removing one forces everything behind it to shift.</span>
-          </h2>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
+    <SceneFrame
+      sceneLabel={<><strong>01</strong><span>Array</span></>}
+      title={`An array stores ${promptCount} items in a row.`}
+      subtitle="Removing one forces everything behind it to shift."
+      stats={(
+        <>
           <Counter
             value={ops}
             danger={costTone === 'danger'}
-            label={stressMode ? 'shifts' : 'shifts'}
+            label="shifts"
             animate={animateCounter}
             animateDuration={stressMode ? 2.0 : Math.max(0.3, (ops * CASCADE_DELAY_PER_CELL) + CASCADE_BASE_DURATION)}
           />
           <StatusPill tone={costTone}>{costText}</StatusPill>
-        </div>
-      </div>
-
-      {/* ── Nudge (compact Explainer) ── */}
-      {nudge && (
-        <div style={{ position: 'relative', zIndex: 1, padding: '12px var(--canvas-pad) 0' }}>
-          <Explainer
-            eyebrow={nudge.eyebrow}
-            text={nudge.text}
-            detail={nudge.detail}
-            tone={nudge.tone}
-          />
-        </div>
+        </>
       )}
-
-      {/* ── Canvas ── */}
-      <div style={{
-        position: 'relative', zIndex: 1, flex: 1,
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: snapshot ? 'flex-start' : 'center',
-        padding: '16px var(--canvas-pad)',
-        overflow: 'auto',
-      }}>
-        {stressMode ? (
-          <StressBar count={stressMode} />
-        ) : (
-          <>
-            {/* ── Before row (snapshot) ── */}
-            <AnimatePresence>
-              {snapshot && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25 }}
-                  style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: '100%' }}
-                >
-                  <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
-                    Before
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--cell-gap)', flexWrap: 'nowrap', alignItems: 'flex-start', justifyContent: 'center' }}>
+      explainer={nudge ? (
+        <Explainer
+          eyebrow={nudge.eyebrow}
+          text={nudge.text}
+          detail={nudge.detail}
+          tone={nudge.tone}
+          compact={tried.count >= 6}
+        />
+      ) : null}
+      legend={snapshotLegend}
+      toolbar={toolbar}
+      history={history.length > 0 ? <OperationHistory history={history} /> : null}
+      align={snapshot || stressMode ? 'top' : 'center'}
+    >
+      {stressMode ? (
+        <StressBar count={stressMode} />
+      ) : (
+        <>
+          <AnimatePresence>
+            {snapshot && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className={sceneStyles.snapshotWrap}
+              >
+                <div className={sceneStyles.snapshotLabel}>Before</div>
+                <div className={sceneStyles.rowScroller}>
+                  <div className={`${sceneStyles.row} ${sceneStyles.rowTop}`}>
                     {snapshot.items.map((item, i) => {
                       const isTarget = i === snapshot.targetIndex
                       let shiftDir = null
                       if (snapshot.action === 'Delete' && i > snapshot.targetIndex) shiftDir = 'left'
-                      if ((snapshot.action === 'Insert') && i >= snapshot.targetIndex) shiftDir = 'right'
+                      if (snapshot.action === 'Insert' && i >= snapshot.targetIndex) shiftDir = 'right'
 
                       return (
                         <StaticCell
@@ -608,34 +680,23 @@ export default function ArrayScene() {
                       )
                     })}
                   </div>
+                </div>
+                <div className={sceneStyles.divider} />
+                <div className={sceneStyles.snapshotLabel}>After</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                  {/* Connector line between before/after */}
-                  <div style={{
-                    width: 1, height: 16,
-                    borderLeft: '1px dashed var(--border)',
-                  }} />
-
-                  <div style={{ fontSize: '0.62rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-dim)', opacity: 0.6 }}>
-                    After
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div style={{ display: 'flex', gap: 'var(--cell-gap)', flexWrap: 'nowrap', alignItems: 'flex-end', position: 'relative' }}>
+          <div className={sceneStyles.rowScroller}>
+            <div className={sceneStyles.row} style={{ position: 'relative' }}>
               <AnimatePresence mode="popLayout">
                 {items.map((item, index) => {
-                  // Compute diff state relative to snapshot
                   let diffState = null
                   if (snapshot) {
                     const prevIndex = snapshot.items.findIndex(s => s.id === item.id)
-                    if (prevIndex === -1) {
-                      diffState = 'new'         // didn't exist before (inserted)
-                    } else if (prevIndex === index) {
-                      diffState = 'same'         // same position
-                    } else {
-                      diffState = 'shifted'      // moved to a different index
-                    }
+                    if (prevIndex === -1) diffState = 'new'
+                    else if (prevIndex === index) diffState = 'same'
+                    else diffState = 'shifted'
                   }
 
                   return (
@@ -647,13 +708,13 @@ export default function ArrayScene() {
                       cascadeOrigin={cascadeOrigin}
                       highlighted={highlightedIdx === index}
                       diffState={diffState}
+                      showHint={showFirstCellHint && index === 0}
                       onClick={(e) => handleCellClick(index, e)}
                     />
                   )
                 })}
               </AnimatePresence>
 
-              {/* Popover */}
               <AnimatePresence>
                 {popover && !cascading && (
                   <CellPopover
@@ -671,58 +732,23 @@ export default function ArrayScene() {
                 )}
               </AnimatePresence>
             </div>
-
-            {/* Empty state */}
-            {isEmpty && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                style={{
-                  padding: '24px 40px',
-                  border: '1px dashed var(--border)',
-                  borderRadius: 'var(--radius-lg)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                  color: 'var(--text-dim)', fontSize: 'var(--size-sm)',
-                }}
-              >
-                <span>Array is empty</span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <CtrlButton label="Reset" small onClick={handleReset} shortcut="R" />
-                  <CtrlButton label="Insert at end" small onClick={executeInsertEnd} />
-                </div>
-              </motion.div>
-            )}
-          </>
-        )}
-
-        {/* History below the array */}
-        {history.length > 0 && (
-          <div style={{ marginTop: 24, width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <OperationHistory history={history} />
           </div>
-        )}
-      </div>
 
-      {/* ── Controls ── */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        borderTop: '1px solid var(--border)',
-        padding: '12px var(--canvas-pad) 16px',
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-        background: 'linear-gradient(180deg, rgba(10,10,15,0), rgba(10,10,15,0.25))',
-      }}>
-        <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
-        <CtrlButton label="Insert at end" small disabled={cascading} onClick={executeInsertEnd} />
-
-        <div style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 4px' }} />
-
-        <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Stress
-        </span>
-        <CtrlButton label="100" small disabled={cascading} onClick={() => handleStress(100)} />
-        <CtrlButton label="1,000" small disabled={cascading} onClick={() => handleStress(1000)} />
-        <CtrlButton label="10,000" small disabled={cascading} onClick={() => handleStress(10000)} />
-      </div>
-    </div>
+          {isEmpty && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className={sceneStyles.emptyState}
+            >
+              <span>Array is empty</span>
+              <div className={sceneStyles.emptyActions}>
+                <CtrlButton label="Reset" small onClick={handleReset} shortcut="R" />
+                <CtrlButton label="Insert at end" small onClick={executeInsertEnd} />
+              </div>
+            </motion.div>
+          )}
+        </>
+      )}
+    </SceneFrame>
   )
 }

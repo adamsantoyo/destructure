@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion' // eslint-disable-line no-unused-vars
+import styles from './Counter.module.css'
 
 export default function Counter({ value, danger = false, label = 'ops', animate: shouldAnimate, animateDuration = 0.6 }) {
   const color = danger ? 'var(--danger)' : 'var(--accent)'
@@ -18,7 +19,6 @@ export default function Counter({ value, danger = false, label = 'ops', animate:
     motionVal.set(value)
   }, [value, shouldAnimate, animateDuration, motionVal])
 
-  // Keep DOM text in sync via motion subscription
   useEffect(() => {
     const unsub = displayed.on('change', v => {
       if (spanRef.current) spanRef.current.textContent = v
@@ -27,25 +27,18 @@ export default function Counter({ value, danger = false, label = 'ops', animate:
   }, [displayed])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+    <div className={styles.counter}>
       <motion.div
         key={shouldAnimate ? 'animating' : value}
         initial={{ scale: 1.15, textShadow: `0 0 28px ${color}` }}
         animate={{ scale: 1, textShadow: `0 0 14px ${color}` }}
         transition={{ type: 'spring', stiffness: 600, damping: 20, duration: 0.15 }}
-        style={{
-          fontSize: 'var(--size-counter)',
-          fontWeight: 700,
-          color,
-          lineHeight: 1,
-          fontVariantNumeric: 'tabular-nums',
-        }}
+        className={styles.value}
+        style={{ color }}
       >
         <span ref={spanRef}>{value}</span>
       </motion.div>
-      <div style={{ fontSize: 'var(--size-xs)', color: 'var(--text-dim)', letterSpacing: '0.1em' }}>
-        {label}
-      </div>
+      <div className={styles.label}>{label}</div>
     </div>
   )
 }

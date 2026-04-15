@@ -1,110 +1,125 @@
+import { useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion' // eslint-disable-line no-unused-vars
+import styles from './CellPopover.module.css'
 
-function PopoverRow({ label, cost, costUnit, onClick, danger }) {
-  const color = danger ? 'var(--danger)' : 'var(--accent)'
-  const bg    = danger ? 'rgba(255,51,102,0.06)' : 'rgba(0,255,200,0.06)'
-  const unit  = costUnit || 'shift'
+function costColor(cost, maxCost) {
+  if (cost === 0) return 'var(--success)'
+  if (cost >= Math.max(2, maxCost)) return 'var(--danger)'
+  return 'var(--accent)'
+}
+
+function PopoverRow({ label, preview, cost, costUnit, costLabel, onClick, icon, maxCost, disabled = false }) {
+  const unit = costUnit || 'shift'
+  const color = costColor(cost, maxCost)
+  const resolvedCost = costLabel ?? (cost === 0 ? 'O(1)' : `${cost} ${unit}${cost !== 1 ? 's' : ''}`)
 
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        width: '100%',
-        padding: '8px 12px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: 6,
-        cursor: 'pointer',
-        color: 'var(--text)',
-        fontSize: '0.8rem',
-        fontFamily: 'var(--font)',
-        gap: 24,
-        transition: 'background 0.12s',
-      }}
-      onMouseEnter={e => e.currentTarget.style.background = bg}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <span>{label}</span>
-      <span style={{
-        fontSize: '0.7rem',
-        color,
-        fontWeight: 700,
-        whiteSpace: 'nowrap',
-      }}>
-        {cost === 0 ? 'O(1)' : `${cost} ${unit}${cost !== 1 ? 's' : ''}`}
+    <button type="button" onClick={disabled ? undefined : onClick} className={styles.row} disabled={disabled}>
+      <span className={styles.rowIcon}>{icon}</span>
+      <span className={styles.rowCopy}>
+        <span className={styles.rowLabel}>{label}</span>
+        <span className={styles.rowPreview}>{preview}</span>
+      </span>
+      <span className={styles.cost} style={{ color }}>
+        {resolvedCost}
       </span>
     </button>
   )
 }
 
-export default function CellPopover({ cellIndex, position, onDelete, onInsertBefore, onInsertAfter, onClose, deleteCost, insertBeforeCost, insertAfterCost, costUnit }) {
+export default function CellPopover({
+  cellIndex,
+  position,
+  onDelete,
+  onInsertBefore,
+  onInsertAfter,
+  onClose,
+  deleteCost,
+  insertBeforeCost,
+  insertAfterCost,
+  costUnit,
+  eyebrow = 'Cell actions',
+  title,
+  rows,
+}) {
+  useEffect(() => {
+    function handleKeydown(event) {
+      if (event.key === 'Escape') onClose?.()
+    }
+
+    document.addEventListener('keydown', handleKeydown)
+    return () => document.removeEventListener('keydown', handleKeydown)
+  }, [onClose])
+
+  const actionRows = useMemo(() => {
+    if (rows?.length) return rows
+
+    return [
+      {
+        label: 'Delete',
+        preview: 'Remove this cell and let the structure repair the gap.',
+        cost: deleteCost,
+        costUnit,
+        onClick: onDelete,
+        icon: '-',
+      },
+      {
+        label: 'Insert before',
+        preview: 'Place a new item ahead of this one and watch the surrounding work.',
+        cost: insertBeforeCost,
+        costUnit,
+        onClick: onInsertBefore,
+        icon: '<',
+      },
+      {
+        label: 'Insert after',
+        preview: 'Place a new item after this cell and compare the ripple.',
+        cost: insertAfterCost,
+        costUnit,
+        onClick: onInsertAfter,
+        icon: '>',
+      },
+    ].filter(row => typeof row.onClick === 'function')
+  }, [costUnit, deleteCost, insertAfterCost, insertBeforeCost, onDelete, onInsertAfter, onInsertBefore, rows])
+
+  const maxCost = Math.max(...actionRows.map(row => row.cost ?? 0), 0)
+  const heading = title ?? (cellIndex != null ? `Index ${cellIndex}` : 'Actions')
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-      />
+      <div onClick={onClose} className={styles.backdrop} role="presentation" />
 
-      {/* Popover */}
       <motion.div
         initial={{ opacity: 0, y: -6, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -4, scale: 0.97 }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        style={{
-          position: 'fixed',
-          left: position.x,
-          top: position.y,
-          transform: 'translateX(-50%)',
-          zIndex: 20,
-          background: 'rgba(10,10,20,0.96)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '6px',
-          minWidth: 200,
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        }}
+        className={styles.popover}
+        role="dialog"
+        aria-label={heading}
+        style={{ left: position.x, top: position.y, transform: 'translateX(-50%)' }}
       >
-        {/* Cell label */}
-        <div style={{
-          padding: '4px 12px 8px',
-          fontSize: '0.68rem',
-          color: 'var(--text-dim)',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          borderBottom: '1px solid var(--border)',
-          marginBottom: 4,
-        }}>
-          index {cellIndex}
+        <div className={styles.header}>
+          <div className={styles.eyebrow}>{eyebrow}</div>
+          <div className={styles.title}>{heading}</div>
         </div>
 
-        <PopoverRow
-          label="Delete"
-          cost={deleteCost}
-          costUnit={costUnit}
-          onClick={onDelete}
-          danger={deleteCost > 0}
-        />
-        <PopoverRow
-          label="Insert before"
-          cost={insertBeforeCost}
-          costUnit={costUnit}
-          onClick={onInsertBefore}
-          danger={insertBeforeCost > 1}
-        />
-        <PopoverRow
-          label="Insert after"
-          cost={insertAfterCost}
-          costUnit={costUnit}
-          onClick={onInsertAfter}
-          danger={insertAfterCost > 1}
-        />
+        <div className={styles.list}>
+          {actionRows.map(row => (
+            <PopoverRow
+              key={`${row.label}-${row.preview}`}
+              label={row.label}
+              preview={row.preview}
+              cost={row.cost ?? 0}
+              costUnit={row.costUnit ?? costUnit}
+              costLabel={row.costLabel}
+              onClick={row.onClick}
+              icon={row.icon}
+              maxCost={maxCost}
+              disabled={row.disabled}
+            />
+          ))}
+        </div>
       </motion.div>
     </>
   )

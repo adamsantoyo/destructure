@@ -1,83 +1,97 @@
-/* ─────────────────────────────────────────
-   DESTRUCTURE — Design Tokens
-   Single source of truth for all visual decisions
-───────────────────────────────────────── */
-
 :root {
-  /* Colors */
-  --bg:           #0A0A0F;
-  --grid-dot:     #1A1A2E;
-  --border:       #2A2A3E;
-  --muted:        #4A4A6A;
-  --accent:       #00FFC8;
-  --accent-glow:  rgba(0, 255, 200, 0.18);
-  --danger:       #FF3366;
-  --danger-glow:  rgba(255, 51, 102, 0.18);
-  --success:      #66FF99;
-  --success-glow: rgba(102, 255, 153, 0.18);
-  --text:         #C8C8E0;
-  --text-dim:     #8A8AAA;
+  /* Core palette */
+  --bg: #07131d;
+  --surface-1: rgba(15, 27, 39, 0.88);
+  --surface-2: rgba(18, 33, 46, 0.78);
+  --surface-3: rgba(25, 43, 58, 0.7);
+  --grid-dot: #143041;
+  --border: rgba(200, 221, 240, 0.12);
+  --muted: #4a6676;
+
+  --accent: #3df1c7;
+  --accent-glow: rgba(61, 241, 199, 0.18);
+  --danger: #ff6f8a;
+  --danger-glow: rgba(255, 111, 138, 0.18);
+  --success: #88f5a8;
+  --success-glow: rgba(136, 245, 168, 0.18);
+  --warning: #ffc66d;
+
+  --text-primary: #eef6fb;
+  --text-secondary: #b7c8d4;
+  --text-tertiary: #79909e;
+  --text: var(--text-primary);
+  --text-dim: var(--text-secondary);
 
   /* Typography */
-  --font:         'JetBrains Mono', 'Fira Mono', 'Courier New', monospace;
-  --size-xs:      0.75rem;
-  --size-sm:      0.875rem;
-  --size-base:    1.125rem;
-  --size-prompt:  1.5rem;
-  --size-counter: 2rem;
+  --font: 'JetBrains Mono', 'Fira Mono', 'Courier New', monospace;
+  --size-xs: 0.75rem;
+  --size-sm: 0.875rem;
+  --size-base: 1.125rem;
+  --size-prompt: 1.55rem;
+  --size-counter: 2.25rem;
 
-  /* Spacing */
-  --gap-xs:  4px;
-  --gap-sm:  8px;
-  --gap-md:  16px;
-  --gap-lg:  32px;
-  --gap-xl:  48px;
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --gap-xs: var(--space-1);
+  --gap-sm: var(--space-2);
+  --gap-md: var(--space-4);
+  --gap-lg: var(--space-6);
+  --gap-xl: var(--space-7);
 
   /* Cells */
-  --cell-w:       72px;
-  --cell-h:       56px;
-  --cell-gap:     10px;
-  --cell-radius:  6px;
+  --cell-w: 72px;
+  --cell-h: 56px;
+  --cell-gap: 10px;
+  --cell-radius: 8px;
 
   /* Radii */
-  --radius-sm:    6px;
-  --radius-md:    12px;
-  --radius-lg:    18px;
-  --radius-pill:  999px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
 
   /* Shadows */
-  --shadow-sm:    0 4px 12px rgba(0,0,0,0.2);
-  --shadow-md:    0 8px 24px rgba(0,0,0,0.3);
-  --shadow-lg:    0 12px 40px rgba(0,0,0,0.4);
+  --shadow-sm: 0 12px 18px rgba(0, 0, 0, 0.16);
+  --shadow-md: 0 20px 32px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 32px 56px rgba(0, 0, 0, 0.28);
 
   /* Motion */
-  --ease-fast:    150ms ease;
-  --ease-medium:  300ms ease;
-  --ease-slow:    500ms ease;
+  --transition-default: 180ms ease;
+  --transition-slow: 320ms ease;
+  --ease-fast: 150ms ease;
+  --ease-medium: 240ms ease;
+  --ease-slow: 420ms ease;
 
   /* Layout */
-  --sidebar-w:    220px;
-  --canvas-pad:   48px;
+  --sidebar-w: 310px;
+  --sidebar-w-collapsed: 88px;
+  --canvas-pad: 48px;
 }
 
-/* ── Responsive ── */
 @media (max-width: 1024px) {
   :root {
-    --sidebar-w:  60px;
     --canvas-pad: 24px;
-    --cell-w:     64px;
-    --cell-h:     48px;
+    --cell-w: 64px;
+    --cell-h: 48px;
+    --size-counter: 2rem;
   }
 }
 
 @media (max-width: 768px) {
   :root {
-    --sidebar-w:  0px;
     --canvas-pad: 16px;
-    --cell-w:     56px;
-    --cell-h:     44px;
-    --cell-gap:   6px;
-    --size-prompt: 1.2rem;
-    --size-counter: 1.5rem;
+    --cell-w: 56px;
+    --cell-h: 44px;
+    --cell-gap: 6px;
+    --size-prompt: 1.25rem;
+    --size-counter: 1.65rem;
   }
 }

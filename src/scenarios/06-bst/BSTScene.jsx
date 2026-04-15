@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion' // eslint-disable-line no-unused-vars
-import Grid from '../../components/Grid'
 import Counter from '../../components/Counter'
 import Explainer from '../../components/Explainer'
 import CtrlButton from '../../components/CtrlButton'
 import StatusPill from '../../components/StatusPill'
+import CellPopover from '../../components/CellPopover'
 import OperationHistory from '../../components/OperationHistory'
+import SceneFrame from '../../components/SceneFrame'
+import useIncrementingId from '../../hooks/useIncrementingId'
+import useSceneKeyboard from '../../hooks/useSceneKeyboard'
 import {
   search, insert, deleteNode, cloneTree, treeSize, treeHeight,
   buildFromArray, getSearchCost,
 } from '../../structures/bst'
+import sceneStyles from '../scenePatterns.module.css'
 
 /* ── Constants ─────────────────────────────────── */
 
 const INITIAL_VALUES = [10, 5, 15, 3, 7, 20]
 const INSERT_POOL = [12, 1, 8, 18, 25, 6, 13, 2, 9, 22, 4, 17, 30, 11, 14]
-
-/* ── ID generator ── */
-
-let historyId = 0
 
 /* ── Layout helpers ── */
 
@@ -79,110 +79,14 @@ function getNudge(tried, lastOp) {
   return null
 }
 
-/* ── BSTPopover ── */
-
-function BSTPopover({ nodeValue, position, searchCost, onSearch, onDelete, onInsert, insertValue, insertSteps, onClose, isLeafSlot }) {
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
-      <motion.div
-        initial={{ opacity: 0, y: -6, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -4, scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        style={{
-          position: 'fixed',
-          left: position.x,
-          top: position.y,
-          transform: 'translateX(-50%)',
-          zIndex: 20,
-          background: 'rgba(10,10,20,0.96)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '6px',
-          minWidth: 200,
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        }}
-      >
-        <div style={{
-          padding: '4px 12px 8px',
-          fontSize: '0.68rem',
-          color: 'var(--text-dim)',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          borderBottom: '1px solid var(--border)',
-          marginBottom: 4,
-        }}>
-          {isLeafSlot ? `empty · insert here` : `node · ${nodeValue}`}
-        </div>
-
-        {isLeafSlot ? (
-          <PopoverBtn
-            label={`Insert ${insertValue}`}
-            subtitle={`${insertSteps} path step${insertSteps !== 1 ? 's' : ''} to reach this slot`}
-            cost={insertSteps}
-            costUnit="path step"
-            danger={false}
-            onClick={onInsert}
-          />
-        ) : (
-          <>
-            <PopoverBtn
-              label="Search"
-              subtitle="Follow the path from root"
-              cost={searchCost}
-              costUnit="path step"
-              danger={false}
-              onClick={onSearch}
-            />
-            <PopoverBtn
-              label="Delete"
-              subtitle="Remove this node"
-              cost={searchCost}
-              costUnit="path step"
-              danger
-              onClick={onDelete}
-            />
-          </>
-        )}
-      </motion.div>
-    </>
-  )
-}
-
-function PopoverBtn({ label, subtitle, cost, costUnit, danger, onClick }) {
-  const bg = danger ? 'rgba(255,51,102,0.06)' : 'rgba(0,255,200,0.06)'
-  const costColor = (danger && cost > 0) ? 'var(--danger)' : 'var(--accent)'
-
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        width: '100%', padding: '8px 12px', background: 'transparent',
-        border: 'none', borderRadius: 6, cursor: 'pointer',
-        color: 'var(--text)', fontSize: '0.8rem', fontFamily: 'var(--font)',
-        gap: 24, transition: 'background 0.12s',
-      }}
-      onMouseEnter={e => e.currentTarget.style.background = bg}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <span>{label}</span>
-        {subtitle && <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 300 }}>{subtitle}</span>}
-      </span>
-      <span style={{ fontSize: '0.7rem', color: costColor, fontWeight: 700, whiteSpace: 'nowrap' }}>
-        {cost === 0 ? 'O(1)' : `${cost} ${costUnit}${cost !== 1 ? 's' : ''}`}
-      </span>
-    </button>
-  )
-}
-
 /* ── TreeNode ── */
 
-function TreeNode({ value, cx, cy, highlighted, pathHighlighted, isNew, onClick }) {
-  const r = 22
+function focusTreeValue(value) {
+  if (value == null) return
+  document.querySelector(`[data-nav-group="bst-nodes"][data-tree-value="${value}"]`)?.focus()
+}
+
+function TreeNode({ value, cx, cy, radius, highlighted, pathHighlighted, isNew, leftValue, rightValue, parentValue, onClick }) {
   let stroke = pathHighlighted ? 'var(--accent)' : 'var(--border)'
   let fill = 'transparent'
   let textColor = pathHighlighted ? 'var(--accent)' : 'var(--text)'
@@ -206,15 +110,47 @@ function TreeNode({ value, cx, cy, highlighted, pathHighlighted, isNew, onClick 
 
   return (
     <motion.g
+      role="button"
+      tabIndex={0}
+      focusable="true"
+      aria-label={`BST node ${value}`}
+      data-nav-group="bst-nodes"
+      data-tree-value={value}
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.4 }}
       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       style={{ cursor: 'pointer' }}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick(event)
+          return
+        }
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault()
+          focusTreeValue(leftValue ?? parentValue)
+          return
+        }
+        if (event.key === 'ArrowRight') {
+          event.preventDefault()
+          focusTreeValue(rightValue ?? parentValue)
+          return
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          focusTreeValue(parentValue)
+          return
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          focusTreeValue(leftValue ?? rightValue)
+        }
+      }}
     >
       <circle
-        cx={cx} cy={cy} r={r}
+        cx={cx} cy={cy} r={radius}
         fill={fill}
         stroke={stroke}
         strokeWidth={highlighted || isNew ? 2 : 1}
@@ -267,11 +203,8 @@ function TreeEdge({ x1, y1, x2, y2, highlighted, radius }) {
 
 /* ── Main scene ────────────────────────────────── */
 
-const NODE_SPACING_X = 56
-const NODE_SPACING_Y = 64
-const NODE_RADIUS = 22
-
 export default function BSTScene() {
+  const { next: nextHistoryId, reset: resetHistoryId } = useIncrementingId()
   const [tree, setTree] = useState(() => buildFromArray(INITIAL_VALUES))
   const [popover, setPopover] = useState(null)
   const [history, setHistory] = useState([])
@@ -279,6 +212,7 @@ export default function BSTScene() {
   const [pathValues, setPathValues] = useState([])
   const [newValue, setNewValue] = useState(null)
   const [lastSteps, setLastSteps] = useState(0)
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth))
 
   const insertPoolIdx = useRef(0)
   const animTimer = useRef(null)
@@ -291,6 +225,19 @@ export default function BSTScene() {
   }, [])
 
   useEffect(() => clearTimers, [clearTimers])
+
+  const appendHistory = useCallback((entry) => {
+    setHistory(prev => [...prev, { id: nextHistoryId(), ...entry }])
+  }, [nextHistoryId])
+
+  useEffect(() => {
+    function handleResize() {
+      setViewportWidth(window.innerWidth)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const nextInsertValue = useCallback(() => {
     const val = INSERT_POOL[insertPoolIdx.current % INSERT_POOL.length]
@@ -332,10 +279,10 @@ export default function BSTScene() {
     })
 
     const costText = result.steps === 0 ? 'O(1) · root' : `${result.steps} path step${result.steps !== 1 ? 's' : ''}`
-    setHistory(prev => [...prev, { id: historyId++, action: 'Search', label: String(value), cost: result.steps, costText }])
+    appendHistory({ action: 'Search', label: String(value), cost: result.steps, costText })
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Search', label: String(value), steps: result.steps })
-  }, [tree, animatePath])
+  }, [animatePath, appendHistory, tree])
 
   /* ── Execute Insert ── */
   const executeInsert = useCallback(() => {
@@ -352,10 +299,10 @@ export default function BSTScene() {
     })
 
     const costText = result.steps === 0 ? 'O(1) · root' : `${result.steps} path step${result.steps !== 1 ? 's' : ''}`
-    setHistory(prev => [...prev, { id: historyId++, action: 'Insert', label: String(value), cost: result.steps, costText }])
+    appendHistory({ action: 'Insert', label: String(value), cost: result.steps, costText })
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', label: String(value), steps: result.steps })
-  }, [tree, nextInsertValue, animatePath])
+  }, [animatePath, appendHistory, nextInsertValue, tree])
 
   /* ── Execute Delete ── */
   const executeDelete = useCallback((value) => {
@@ -378,10 +325,10 @@ export default function BSTScene() {
     } else {
       costText = totalCost === 0 ? 'O(1) · root' : `${totalCost} path step${totalCost !== 1 ? 's' : ''}`
     }
-    setHistory(prev => [...prev, { id: historyId++, action: 'Delete', label: String(value), cost: totalCost, costText }])
+    appendHistory({ action: 'Delete', label: String(value), cost: totalCost, costText })
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Delete', label: String(value), steps: totalCost, deleteCase: result.deleteCase })
-  }, [tree, animatePath])
+  }, [animatePath, appendHistory, tree])
 
   /* ── Node click → popover ── */
   const handleNodeClick = useCallback((value, event) => {
@@ -405,6 +352,7 @@ export default function BSTScene() {
   const handleReset = useCallback(() => {
     clearTimers()
     insertPoolIdx.current = 0
+    resetHistoryId()
     setTree(buildFromArray(INITIAL_VALUES))
     setPopover(null)
     setHistory([])
@@ -414,18 +362,12 @@ export default function BSTScene() {
     setLastSteps(0)
     setTried({ any: false, count: 0 })
     setLastOp(null)
-  }, [clearTimers])
+  }, [clearTimers, resetHistoryId])
 
-  /* ── Keyboard shortcuts ── */
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.target.tagName === 'INPUT') return
-      if (e.key === 'Escape') setPopover(null)
-      if (e.key === 'r' || e.key === 'R') handleReset()
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [handleReset])
+  useSceneKeyboard({
+    onClose: () => setPopover(null),
+    onReset: handleReset,
+  })
 
   /* ── Derived state ── */
   const nodeCount = treeSize(tree)
@@ -449,125 +391,122 @@ export default function BSTScene() {
   const layout = layoutTree(tree)
   const maxX = Math.max(...layout.nodes.map(n => n.x), 0)
   const maxY = Math.max(...layout.nodes.map(n => n.y), 0)
-  const pad = NODE_RADIUS + 32
-  const svgW = (maxX + 1) * NODE_SPACING_X + pad * 2
-  const svgH = (maxY + 1) * NODE_SPACING_Y + pad * 2
+  const nodeSpacingX = viewportWidth < 768 ? 44 : viewportWidth < 1024 ? 50 : 56
+  const nodeSpacingY = viewportWidth < 768 ? 54 : viewportWidth < 1024 ? 60 : 64
+  const nodeRadius = viewportWidth < 768 ? 18 : viewportWidth < 1024 ? 20 : 22
+  const pad = nodeRadius + 32
+  const svgW = (maxX + 1) * nodeSpacingX + pad * 2
+  const svgH = (maxY + 1) * nodeSpacingY + pad * 2
   const offsetX = pad
   const offsetY = pad
 
-  function toSvgX(x) { return x * NODE_SPACING_X + offsetX }
-  function toSvgY(y) { return y * NODE_SPACING_Y + offsetY }
+  function toSvgX(x) { return x * nodeSpacingX + offsetX }
+  function toSvgY(y) { return y * nodeSpacingY + offsetY }
+  const toolbar = (
+    <>
+      <CtrlButton onClick={executeInsert} glow>{`Insert ${nextVal}`}</CtrlButton>
+      <CtrlButton onClick={handleReset} shortcut="R" small>Reset</CtrlButton>
+    </>
+  )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      <Grid />
-
-      {/* Header */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        padding: '24px var(--canvas-pad) 0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
-      }}>
-        <div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
-            06 — Binary Search Tree
-          </div>
-          <h2 style={{ fontSize: 'var(--size-prompt)', fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, maxWidth: 520, fontFamily: 'var(--font)', margin: 0 }}>
-            A binary search tree.<br />
-            <span style={{ color: 'var(--text-dim)', fontWeight: 300, fontSize: '0.75em' }}>Left is smaller, right is larger. Shape controls speed.</span>
-          </h2>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, minWidth: 180 }}>
+    <SceneFrame
+      sceneLabel={<><strong>06</strong><span>Binary Search Tree</span></>}
+      title="A binary search tree."
+      subtitle="Left is smaller, right is larger. Shape controls speed."
+      stats={(
+        <>
           <Counter value={lastSteps} danger={hasSteps && isDegrading} label="path steps" />
           <StatusPill tone={statusTone}>{statusText}</StatusPill>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <CtrlButton onClick={executeInsert} glow>Insert {nextVal}</CtrlButton>
-            <CtrlButton onClick={handleReset} shortcut="R" small>Reset</CtrlButton>
-          </div>
-        </div>
-      </div>
-
-      {/* Nudge */}
-      {nudge && (
-        <div style={{ position: 'relative', zIndex: 1, padding: '12px var(--canvas-pad) 0' }}>
-          <Explainer eyebrow={nudge.eyebrow} text={nudge.text} detail={nudge.detail} tone={nudge.tone} />
-        </div>
+        </>
       )}
-
-      {/* Canvas */}
-      <div style={{
-        position: 'relative', zIndex: 1, flex: 1,
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px var(--canvas-pad)',
-        overflow: 'auto',
-      }}>
+      explainer={nudge ? <Explainer eyebrow={nudge.eyebrow} text={nudge.text} detail={nudge.detail} tone={nudge.tone} /> : null}
+      toolbar={toolbar}
+      history={history.length > 0 ? <OperationHistory history={history} /> : null}
+    >
+      <div className={`${sceneStyles.stageColumn} ${sceneStyles.stageCenter}`}>
         {tree === null ? (
-          <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem', textAlign: 'center' }}>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center' }}>
             Tree is empty.
             <div style={{ marginTop: 8 }}>
               <CtrlButton onClick={executeInsert}>Insert {nextVal}</CtrlButton>
             </div>
           </div>
         ) : (
-          <svg width={svgW} height={svgH} style={{ overflow: 'visible', flexShrink: 0 }}>
-            {/* Edges */}
-            {layout.edges.map((e, i) => (
-              <TreeEdge
-                key={`e-${i}`}
-                x1={toSvgX(e.x1)} y1={toSvgY(e.y1)}
-                x2={toSvgX(e.x2)} y2={toSvgY(e.y2)}
-                radius={NODE_RADIUS}
-                highlighted={pathValues.includes(
-                  layout.nodes.find(n => n.x === e.x2 && n.y === e.y2)?.value
-                )}
-              />
-            ))}
-            {/* Nodes */}
-            <AnimatePresence>
-              {layout.nodes.map(n => (
-                <TreeNode
-                  key={n.value}
-                  value={n.value}
-                  cx={toSvgX(n.x)}
-                  cy={toSvgY(n.y)}
-                  highlighted={highlightedValue === n.value}
-                  pathHighlighted={pathValues.includes(n.value)}
-                  isNew={newValue === n.value}
-                  onClick={(e) => handleNodeClick(n.value, e)}
+          <div className={sceneStyles.treeScroller}>
+            <svg width={svgW} height={svgH} style={{ overflow: 'visible', flexShrink: 0 }}>
+              {/* Edges */}
+              {layout.edges.map((e, i) => (
+                <TreeEdge
+                  key={`e-${i}`}
+                  x1={toSvgX(e.x1)} y1={toSvgY(e.y1)}
+                  x2={toSvgX(e.x2)} y2={toSvgY(e.y2)}
+                  radius={nodeRadius}
+                  highlighted={pathValues.includes(
+                    layout.nodes.find(n => n.x === e.x2 && n.y === e.y2)?.value
+                  )}
                 />
               ))}
-            </AnimatePresence>
-          </svg>
+              {/* Nodes */}
+              <AnimatePresence>
+                {layout.nodes.map(n => (
+                  <TreeNode
+                    key={n.value}
+                    value={n.value}
+                    cx={toSvgX(n.x)}
+                    cy={toSvgY(n.y)}
+                    radius={nodeRadius}
+                    highlighted={highlightedValue === n.value}
+                    pathHighlighted={pathValues.includes(n.value)}
+                    isNew={newValue === n.value}
+                    leftValue={n.left?.value ?? null}
+                    rightValue={n.right?.value ?? null}
+                    parentValue={n.parentValue}
+                    onClick={(e) => handleNodeClick(n.value, e)}
+                  />
+                ))}
+              </AnimatePresence>
+            </svg>
+          </div>
         )}
-      </div>
 
-      {/* Popover */}
-      <AnimatePresence>
-        {popover && (
-          <BSTPopover
-            nodeValue={popover.value}
-            position={{ x: popover.x, y: popover.y }}
-            searchCost={popover.searchCost}
-            onSearch={() => executeSearch(popover.value)}
-            onDelete={() => executeDelete(popover.value)}
-            onInsert={executeInsert}
-            insertValue={nextVal}
-            insertSteps={nextInsertResult.steps}
-            onClose={() => setPopover(null)}
-            isLeafSlot={false}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Footer: History */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        padding: '0 var(--canvas-pad) 24px',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-      }}>
-        <OperationHistory history={history} />
+        <AnimatePresence>
+          {popover && (
+            <CellPopover
+              eyebrow="Tree node"
+              title={String(popover.value)}
+              position={{ x: popover.x, y: popover.y }}
+              rows={[
+                {
+                  label: 'Search',
+                  preview: 'Follow the comparisons from the root to this node.',
+                  cost: popover.searchCost,
+                  costUnit: 'path step',
+                  onClick: () => executeSearch(popover.value),
+                  icon: '?',
+                },
+                {
+                  label: 'Delete',
+                  preview: 'Remove this node and let the tree repair the ordering.',
+                  cost: popover.searchCost,
+                  costUnit: 'path step',
+                  onClick: () => executeDelete(popover.value),
+                  icon: '-',
+                },
+                {
+                  label: `Next insert ${nextVal}`,
+                  preview: `${nextInsertResult.steps} path step${nextInsertResult.steps !== 1 ? 's' : ''} from the root for the next value.`,
+                  cost: nextInsertResult.steps,
+                  costUnit: 'path step',
+                  icon: '+',
+                  disabled: true,
+                },
+              ]}
+              onClose={() => setPopover(null)}
+            />
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </SceneFrame>
   )
 }

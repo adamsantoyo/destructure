@@ -1,0 +1,104 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.popover {
+  position: fixed;
+  z-index: 20;
+  min-width: 16rem;
+  max-width: min(22rem, calc(100vw - 1.5rem));
+  padding: 0.5rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+    rgba(10, 20, 29, 0.96);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 36px rgba(0, 0, 0, 0.36);
+}
+
+.header {
+  padding: 0.55rem 0.75rem 0.7rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.eyebrow {
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin-top: 0.28rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.list {
+  display: grid;
+  gap: 0.35rem;
+  padding-top: 0.45rem;
+}
+
+.row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.7rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background var(--transition-default), transform var(--transition-default);
+}
+
+.row:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(2px);
+}
+
+.row:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.rowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rowCopy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowLabel {
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.rowPreview {
+  margin-top: 0.18rem;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.cost {
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
