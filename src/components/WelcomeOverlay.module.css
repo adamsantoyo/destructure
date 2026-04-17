@@ -133,6 +133,11 @@
 }
 
 @media (max-width: 880px) {
+  .overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+
   .card {
     grid-template-columns: 1fr;
   }
