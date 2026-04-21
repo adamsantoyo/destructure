@@ -25,6 +25,11 @@ const SCENARIOS = [
   { id: '06', label: 'BST', hint: 'Branching search', icon: 'Y', group: 'Non-linear', Scene: BSTScene, ready: true },
 ]
 
+const MODE_TOOLTIPS = {
+  challenge: 'Predict the cost before you see it',
+  break: 'Push structures to their worst case',
+}
+
 const MODES = [
   { id: 'explore', label: 'Explore', tag: 'Live', ready: true },
   { id: 'compare', label: 'Compare', tag: 'Guided', ready: true },
@@ -50,13 +55,18 @@ function loadProgress() {
   }
 }
 
-function ComingSoon({ label }) {
+const MODE_DESCRIPTIONS = {
+  challenge: 'Predict the cost before you see it. Coming soon.',
+  break: 'Push structures to their worst case — sorted BST inserts, full hash tables. Coming soon.',
+}
+
+function ComingSoon({ label, modeId }) {
   return (
     <div className="comingSoon">
       <div className="comingSoonCard">
         <div className="comingSoonMark">d.</div>
         <div className="comingSoonTitle">{label}</div>
-        <div className="comingSoonText">This mode is planned, but the revamped interaction model is still being built.</div>
+        <div className="comingSoonText">{MODE_DESCRIPTIONS[modeId] || 'This mode is coming soon.'}</div>
       </div>
     </div>
   )
@@ -141,7 +151,16 @@ export default function App() {
         },
       }
     })
-  }, [activeId, activeMode])
+    // Auto-open info panel on first visit to each structure
+    const infoKey = `${activeId}_info_seen`
+    if (!progress.hints[infoKey]) {
+      setInfoPanelOpen(true)
+      setProgress(prev => ({
+        ...prev,
+        hints: { ...prev.hints, [infoKey]: true },
+      }))
+    }
+  }, [activeId, activeMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (activeMode !== 'compare') return
@@ -204,10 +223,10 @@ export default function App() {
       }
     })
 
-    unlockInsight('first_operation', 'First operation logged', 'You are not just reading definitions now. Watch the cost pill and history drawer while you keep clicking.')
+    unlockInsight('first_operation', 'First operation complete', 'Notice the cost counter — it tracks the hidden work behind every action.')
 
     if (event.cost === 0 || event.complexity === 'O(1)') {
-      unlockInsight('first_constant', 'You found an O(1) move', 'Not every interaction scales with size. This one stays flat as the structure grows.')
+      unlockInsight('first_constant', 'That was O(1)', 'Zero extra work regardless of size. Not every position in every structure is this cheap.')
     }
 
     if ((event.structure === 'array' || event.structure === 'linked-list') && event.position) {
@@ -215,10 +234,18 @@ export default function App() {
       const sawFront = positions.front || event.position === 'front'
       const sawEnd = positions.end || event.position === 'end'
       if (sawFront && sawEnd) {
-        unlockInsight('front_vs_end', 'Front vs end clicked', 'Now the contrast is visible: identical verbs can produce very different work depending on position.')
+        unlockInsight('front_vs_end', 'Front vs. end', 'Same verb, different cost. Position is the variable that changes the work.')
       }
     }
-  }, [progress.metrics, unlockInsight])
+
+    // Promote Compare mode after exploring both Array and Linked List
+    if (event.structure === 'array' || event.structure === 'linked-list') {
+      const explored = progress.explored || {}
+      if (explored['01'] && explored['02']) {
+        unlockInsight('try_compare', 'Try Compare mode', 'You\'ve explored Array and Linked List. Switch to Compare mode to see the same operation in both — the cost difference becomes obvious.')
+      }
+    }
+  }, [progress.metrics, progress.explored, unlockInsight])
 
   const handleSelectScenario = useCallback((id) => {
     setActiveId(id)
@@ -231,17 +258,18 @@ export default function App() {
   }, [])
 
   const dismissFirstCellHint = useCallback(() => {
+    const hintKey = `${activeId}_first_cell`
     setProgress(prev => {
-      if (prev.hints.array_first_cell) return prev
+      if (prev.hints[hintKey]) return prev
       return {
         ...prev,
         hints: {
           ...prev.hints,
-          array_first_cell: true,
+          [hintKey]: true,
         },
       }
     })
-  }, [])
+  }, [activeId])
 
   const currentToast = toastQueue[0] ?? null
 
@@ -255,7 +283,7 @@ export default function App() {
 
   const sceneProps = {
     onSceneEvent: handleSceneEvent,
-    showFirstCellHint: progress.introSeen && activeId === '01' && !progress.hints.array_first_cell,
+    showFirstCellHint: progress.introSeen && !progress.hints[`${activeId}_first_cell`],
     dismissFirstCellHint,
   }
 
@@ -264,7 +292,7 @@ export default function App() {
       return active?.Scene ? <active.Scene {...sceneProps} /> : <ComingSoon label={active?.label} />
     }
     if (activeMode === 'compare') return <CompareScene />
-    return <ComingSoon label={MODES.find(mode => mode.id === activeMode)?.label} />
+    return <ComingSoon label={MODES.find(mode => mode.id === activeMode)?.label} modeId={activeMode} />
   }
 
   return (
@@ -349,6 +377,8 @@ export default function App() {
                     <div><span className="glossaryTerm">O(1)</span> stays flat no matter how much data you add.</div>
                     <div><span className="glossaryTerm">O(log n)</span> grows slowly because each decision cuts the search space down.</div>
                     <div><span className="glossaryTerm">O(n)</span> scales with the size of the structure, so every extra item can add work.</div>
+                    <div><span className="glossaryTerm">O(n log n)</span> common in efficient sorting — grows faster than linear but still manageable.</div>
+                    <div><span className="glossaryTerm">O(n²)</span> nested loops over the data — becomes painfully slow as data grows.</div>
                   </div>
                 </motion.div>
               )}
@@ -404,6 +434,7 @@ export default function App() {
                     !mode.ready ? 'modeTabDisabled' : '',
                   ].filter(Boolean).join(' ')}
                   disabled={!mode.ready}
+                  title={!mode.ready ? MODE_TOOLTIPS[mode.id] : undefined}
                   role="tab"
                   aria-selected={activeMode === mode.id}
                   aria-controls="mode-panel"

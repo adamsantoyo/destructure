@@ -35,7 +35,7 @@ function getNudge(tried, lastOp) {
   if (tried.count < 6) {
     return { tone: 'success', eyebrow: 'Order preserved', text: 'Enqueue: A, B, C. Dequeue: A, B, C. Same order in, same order out — that\u2019s what makes it FIFO.', detail: 'Queues are used for task scheduling, message buffers, and anywhere fairness matters (printer queues, ticketing systems).' }
   }
-  return null
+  return { tone: 'muted', eyebrow: 'What\'s next?', text: 'Next up: Hash Table — what if you could skip the search entirely and jump straight to the answer?', detail: null }
 }
 
 /* ── QueueCell ── */

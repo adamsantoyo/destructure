@@ -57,7 +57,7 @@ function getNudge(tried, lastOp, lastProbes) {
   if (tried.count < 7) {
     return { tone: 'success', eyebrow: 'Empty vs full', text: 'Empty table ≈ O(1) — every key lands in its home bucket. Full table ≈ O(n) — you probe through many occupied slots before finding space.', detail: 'Real hash tables resize (rehash) when they reach ~70% full to keep collisions rare and maintain O(1) average performance.' }
   }
-  return null
+  return { tone: 'muted', eyebrow: 'What\'s next?', text: 'Next up: BST — searching by shape instead of hashing. How does a tree decide where to look?', detail: null }
 }
 
 /* ── BucketCell ── */

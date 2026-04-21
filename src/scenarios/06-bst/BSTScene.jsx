@@ -76,7 +76,7 @@ function getNudge(tried, lastOp) {
   if (tried.count < 7) {
     return { tone: 'success', eyebrow: 'Balanced vs skewed', text: 'Balanced tree \u2248 O(log n) \u2014 each comparison cuts the search space in half. Skewed tree \u2248 O(n) \u2014 you have to check every node.', detail: 'Self-balancing trees (AVL, Red-Black) automatically prevent the worst case by keeping the tree wide and shallow.' }
   }
-  return null
+  return { tone: 'muted', eyebrow: 'What\'s next?', text: 'You\'ve seen all 6 structures. Try Compare mode to see two structures handle the same operation side by side.', detail: null }
 }
 
 /* ── TreeNode ── */
@@ -416,7 +416,7 @@ export default function BSTScene() {
       subtitle="Left is smaller, right is larger. Shape controls speed."
       stats={(
         <>
-          <Counter value={lastSteps} danger={hasSteps && isDegrading} label="comparisons" />
+          <Counter value={lastSteps} danger={hasSteps && isDegrading} label="steps from root" />
           <StatusPill tone={statusTone}>{statusText}</StatusPill>
         </>
       )}

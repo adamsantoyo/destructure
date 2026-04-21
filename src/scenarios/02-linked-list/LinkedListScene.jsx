@@ -39,7 +39,7 @@ function getNudge(tried, lastOp) {
   if (tried.count < 6) {
     return { tone: 'accent', eyebrow: 'Head vs everything else', text: 'Head operations = O(1) — direct access. Everything else = O(n) — walk there first, then rewire.', detail: 'Linked lists trade array shifts for traversal. Middle operations are still O(n), but the work is different (walking vs shifting).' }
   }
-  return null
+  return { tone: 'muted', eyebrow: 'What\'s next?', text: 'Next up: Stack — what happens when you can only touch the top?', detail: 'Stacks restrict access to a single end. See how that constraint changes the cost story.' }
 }
 
 /* ── Arrow connector between nodes ── */
@@ -584,13 +584,35 @@ export default function LinkedListScene() {
                   <CellPopover
                     cellIndex={popover.index}
                     position={{ x: popover.x, y: popover.y }}
-                    deleteCost={getDeleteCost(items.length, popover.index)}
-                    insertBeforeCost={getInsertCost(items.length, popover.index)}
-                    insertAfterCost={getInsertCost(items.length, popover.index + 1)}
+                    eyebrow="Node actions"
+                    title={`Node ${popover.index}`}
                     costUnit="step"
-                    onDelete={() => executeDelete(popover.index)}
-                    onInsertBefore={() => executeInsertBefore(popover.index)}
-                    onInsertAfter={() => executeInsertAfter(popover.index)}
+                    rows={[
+                      {
+                        label: 'Delete',
+                        preview: 'Remove this node and rewire the surrounding pointers.',
+                        cost: getDeleteCost(items.length, popover.index),
+                        costUnit: 'step',
+                        onClick: () => executeDelete(popover.index),
+                        icon: '-',
+                      },
+                      {
+                        label: 'Insert before',
+                        preview: 'Add a new node before this one — rewire the chain.',
+                        cost: getInsertCost(items.length, popover.index),
+                        costUnit: 'step',
+                        onClick: () => executeInsertBefore(popover.index),
+                        icon: '<',
+                      },
+                      {
+                        label: 'Insert after',
+                        preview: 'Add a new node after this one — update the pointer.',
+                        cost: getInsertCost(items.length, popover.index + 1),
+                        costUnit: 'step',
+                        onClick: () => executeInsertAfter(popover.index),
+                        icon: '>',
+                      },
+                    ]}
                     onClose={() => setPopover(null)}
                   />
                 )}

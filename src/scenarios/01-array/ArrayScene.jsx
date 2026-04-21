@@ -41,7 +41,7 @@ function getNudge(tried, lastOp) {
   if (tried.count < 6) {
     return { tone: 'accent', eyebrow: 'Front vs end', text: 'Front operations = O(n) — many shifts. End operations = O(1) — no shifts. Arrays give you instant access anywhere, but mutations at the front are expensive.', detail: 'This tradeoff is why different structures exist: arrays trade mutation cost for access speed.' }
   }
-  return { tone: 'muted', eyebrow: 'Tip', text: 'Compare the front, middle, and end. Same delete, different ripple.', detail: null }
+  return { tone: 'muted', eyebrow: 'What\'s next?', text: 'Ready for more? Try Linked List — same operations, different cost shape.', detail: 'Compare the front, middle, and end. Same delete, different ripple.' }
 }
 
 /* ── ArrayCell ── */
@@ -605,8 +605,8 @@ export default function ArrayScene({ onSceneEvent, showFirstCellHint = false, di
       <CtrlButton label="Undo" icon="<" onClick={handleUndo} small disabled={!undo.canUndo || cascading} />
       <CtrlButton label="Reset" onClick={handleReset} small shortcut="R" />
       <CtrlButton label="Insert at end" small disabled={cascading} onClick={executeInsertEnd} />
-      <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        Stress
+      <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase' }} title="Scale up to feel O(n) grow — delete from the front at each size">
+        Scale test
       </span>
       <CtrlButton label="100" small disabled={cascading} onClick={() => handleStress(100)} />
       <CtrlButton label="1,000" small disabled={cascading} onClick={() => handleStress(1000)} />

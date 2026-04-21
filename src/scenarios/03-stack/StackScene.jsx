@@ -35,7 +35,7 @@ function getNudge(tried, lastOp) {
   if (tried.count < 6) {
     return { tone: 'success', eyebrow: 'Order reversed', text: 'Push order: A, B, C. Pop order: C, B, A. That\u2019s LIFO — last in, first out.', detail: 'Stacks are used for undo systems, function call stacks, and depth-first traversal (like navigating folders).' }
   }
-  return null
+  return { tone: 'muted', eyebrow: 'What\'s next?', text: 'Next up: Queue — same constraint, different order. What changes when you serve the front instead?', detail: null }
 }
 
 /* ── StackCell ── */

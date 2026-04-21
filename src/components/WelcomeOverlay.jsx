@@ -51,7 +51,7 @@ export default function WelcomeOverlay({ onStart, exploredCount }) {
           </div>
 
           <div className={styles.secondary}>
-            Click a cell, trigger an operation, and watch the hidden work happen. The goal is pattern recognition first, Big-O vocabulary second.
+            Click any element in the structure to see what operations are available and what they cost. Then execute and watch the hidden work happen.
           </div>
 
           <div className={styles.actions}>
@@ -70,12 +70,16 @@ export default function WelcomeOverlay({ onStart, exploredCount }) {
 
           <div className={styles.previewGuide}>
             <div className={styles.guideItem}>
-              <strong>Interactive by default</strong>
-              <span>Most scenes let you click the structure itself, not just the footer controls.</span>
+              <strong>Click to interact</strong>
+              <span>Click any element in the structure — a menu shows what you can do and what it will cost.</span>
             </div>
             <div className={styles.guideItem}>
               <strong>Progress sticks</strong>
-              <span>Explored structures and unlocked insights persist locally so the sidebar starts to reflect what you have learned.</span>
+              <span>Explored structures and unlocked insights persist locally so the sidebar reflects what you have learned.</span>
+            </div>
+            <div className={styles.guideItem}>
+              <strong>Keyboard shortcuts</strong>
+              <span>R to reset the scene, Esc to close menus.</span>
             </div>
           </div>
         </div>
