@@ -40,22 +40,22 @@ function buildInitialBuckets(makeEntry) {
 
 function getNudge(tried, lastOp, lastProbes) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'What is a hash table?', text: 'A structure that converts a key into a bucket number using a hash function. If the bucket is empty, access is instant. If it\u2019s taken, you have to keep looking.', detail: 'Click any bucket to see where the next key will land, or inspect an existing one.' }
+    return { tone: 'neutral', eyebrow: 'How does a hash table work?', text: 'Each key is converted into a bucket number (its "home"). If that bucket is empty, you store it there instantly. If someone else is already there, you probe forward until you find an empty slot.', detail: 'Click any bucket to see operations. The toolbar shows a preview of where the next key will land.' }
   }
   if (tried.count === 1 && lastOp) {
     if (lastProbes === 0) {
-      return { tone: 'accent', eyebrow: 'Direct hit', text: `"${lastOp.label}" hashed straight to its bucket. No collisions \u2014 O(1).`, detail: null }
+      return { tone: 'accent', eyebrow: 'Direct hit', text: `"${lastOp.label}" went straight to its home bucket. No collisions \u2014 O(1) access.`, detail: 'This is the ideal case: the bucket was empty, so no extra work needed.' }
     }
-    return { tone: 'danger', eyebrow: 'Collision', text: `"${lastOp.label}" needed ${lastProbes} extra probe${lastProbes !== 1 ? 's' : ''} \u2014 the bucket was taken.`, detail: 'When two keys hash to the same slot, one has to keep looking.' }
+    return { tone: 'danger', eyebrow: 'Collision', text: `"${lastOp.label}" wanted bucket ${lastOp.home}, but it was taken. Had to probe ${lastProbes} more slot${lastProbes !== 1 ? 's' : ''} to find space.`, detail: 'Collisions happen when multiple keys hash to the same bucket. Linear probing checks the next slot, then the next, until finding empty space.' }
   }
   if (lastOp && lastOp.action === 'Delete' && lastOp.explainTombstone) {
-    return { tone: 'neutral', eyebrow: 'Tombstone', text: `"${lastOp.label}" is gone, but the slot shows \u00d7 instead of empty.`, detail: 'That marker keeps the probe chain intact. Without it, lookups for items that probed past this slot would break.' }
+    return { tone: 'neutral', eyebrow: 'Why the \u00d7 marker?', text: `"${lastOp.label}" is gone, but the slot shows \u00d7 (tombstone) instead of becoming empty.`, detail: 'If we made this empty, lookups for items that probed past here would stop too early and fail to find their target. The \u00d7 says "keep probing, something might be further ahead."' }
   }
   if (tried.count < 4) {
-    return { tone: 'neutral', eyebrow: 'Keep going', text: 'Insert more items. Watch for collisions as the table fills up.', detail: 'The fuller the table, the more probes each operation needs.' }
+    return { tone: 'neutral', eyebrow: 'Watch collisions grow', text: 'Insert more keys. As the table fills, collisions become more frequent — items get pushed further from their home bucket.', detail: 'Each collision adds an extra probe. The fuller the table, the longer the probe chains become.' }
   }
   if (tried.count < 7) {
-    return { tone: 'success', eyebrow: 'Pattern', text: 'Empty table = O(1). Full table = O(n). Collisions are the cost.', detail: 'That\u2019s why hash tables resize \u2014 to keep collisions rare.' }
+    return { tone: 'success', eyebrow: 'Empty vs full', text: 'Empty table ≈ O(1) — every key lands in its home bucket. Full table ≈ O(n) — you probe through many occupied slots before finding space.', detail: 'Real hash tables resize (rehash) when they reach ~70% full to keep collisions rare and maintain O(1) average performance.' }
   }
   return null
 }
