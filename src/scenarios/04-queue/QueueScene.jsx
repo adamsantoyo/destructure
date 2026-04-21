@@ -22,18 +22,18 @@ const INSERT_NAMES = ['Ash', 'Rune', 'Flux', 'Dew', 'Coda', 'Wren', 'Lux', 'Byte
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'What is a queue?', text: 'A line where items join at the back and leave from the front. First in, first out — everyone waits their turn.', detail: 'Click any item. Only the front can leave. Everyone else is waiting.' }
+    return { tone: 'neutral', eyebrow: 'How does a queue work?', text: 'Front and back are directly reachable. Everything in between is waiting — you cannot skip ahead or reach the middle.', detail: 'Click any item to see what operations are available. Only the front can leave, and new items join at the back.' }
   }
   if (tried.count === 1 && lastOp) {
     return lastOp.action === 'Dequeue'
-      ? { tone: 'accent', eyebrow: 'FIFO', text: `"${lastOp.label}" was the first in, so it was the first out. That\u2019s fair.`, detail: null }
-      : { tone: 'accent', eyebrow: 'Enqueued', text: `"${lastOp.label}" joined the back of the line. Dequeue to see who leaves first.`, detail: null }
+      ? { tone: 'accent', eyebrow: 'FIFO in action', text: `"${lastOp.label}" was first in line, so it left first. That\u2019s the queue rule: first in, first out.`, detail: 'No one can cut ahead. The order you arrive is the order you leave.' }
+      : { tone: 'accent', eyebrow: 'Joined the back', text: `"${lastOp.label}" joined at the back. Everyone ahead must leave before this item can.`, detail: 'Dequeue several times and watch the front move forward.' }
   }
   if (tried.count < 4) {
-    return { tone: 'neutral', eyebrow: 'Keep going', text: 'Enqueue several, then dequeue several. The order tells the story.', detail: 'Everyone waits their turn. No cutting.' }
+    return { tone: 'neutral', eyebrow: 'Why O(1)?', text: 'No matter how long the queue gets, removing from the front or adding to the back is instant — you never have to traverse or shift.', detail: 'Enqueue several, then dequeue several. Watch the order stay consistent.' }
   }
   if (tried.count < 6) {
-    return { tone: 'success', eyebrow: 'Pattern', text: 'Enqueue: A, B, C. Dequeue: A, B, C. Same order in, same order out.', detail: 'First In, First Out \u2014 like a line at a store.' }
+    return { tone: 'success', eyebrow: 'Order preserved', text: 'Enqueue: A, B, C. Dequeue: A, B, C. Same order in, same order out — that\u2019s what makes it FIFO.', detail: 'Queues are used for task scheduling, message buffers, and anywhere fairness matters (printer queues, ticketing systems).' }
   }
   return null
 }
@@ -393,14 +393,16 @@ export default function QueueScene() {
                   ...(popover.index === 0
                     ? [{
                         label: 'Dequeue',
-                        preview: 'Remove the item at the front of the line.',
+                        preview: 'Remove the front item — instant access, no traversal needed.',
                         cost: 0,
+                        costUnit: 'instant',
+                        complexity: 'O(1)',
                         onClick: executeDequeue,
                         icon: '-',
                       }]
                     : [{
                         label: 'Dequeue blocked',
-                        preview: `${popover.index} item${popover.index !== 1 ? 's' : ''} arrived earlier. They leave first.`,
+                        preview: `${popover.index} item${popover.index !== 1 ? 's' : ''} are ahead in line. You cannot skip them — queues enforce FIFO order.`,
                         cost: popover.index,
                         costLabel: `${popover.index} ahead`,
                         icon: '!',
@@ -409,8 +411,10 @@ export default function QueueScene() {
                   ...(popover.index === items.length - 1
                     ? [{
                         label: 'Enqueue',
-                        preview: 'Add a new item to the back of the line.',
+                        preview: 'Add to the back — instant access, no shifting required.',
                         cost: 0,
+                        costUnit: 'instant',
+                        complexity: 'O(1)',
                         onClick: executeEnqueue,
                         icon: '+',
                       }]

@@ -27,19 +27,19 @@ const CASCADE_BASE_DURATION = 0.35   // spring settle time per cell
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'What is an array?', text: 'Items stored side by side at numbered positions. You can jump to any position instantly — but removing an item forces everything behind it to slide over.', detail: 'Click a cell to delete or insert. Watch what the rest of the array has to do.' }
+    return { tone: 'neutral', eyebrow: 'How does an array work?', text: 'Items stored side by side at numbered positions. You can jump to any position instantly — but removing an item forces everything behind it to shift forward.', detail: 'Click any cell to delete or insert. Watch what the rest of the array has to do.' }
   }
   if (lastOp && !tried.end) {
     return { tone: lastOp.cost > 1 ? 'danger' : 'accent', eyebrow: `${lastOp.cost} shifts`, text: `Deleting from position ${lastOp.index} cost ${lastOp.cost} shift${lastOp.cost !== 1 ? 's' : ''}. Now try the last cell.`, detail: 'Every element behind the gap slides forward to fill it. Each slide is a shift.' }
   }
   if (tried.front && tried.end && !tried.middle) {
-    return { tone: 'success', eyebrow: 'Pattern', text: `Front: ${tried.frontCost} shifts. End: ${tried.endCost}. Try the middle.`, detail: 'The closer to the front, the more elements have to move.' }
+    return { tone: 'success', eyebrow: 'Position determines cost', text: `Front: ${tried.frontCost} shifts. End: ${tried.endCost}. Try the middle now.`, detail: 'The closer to the front, the more elements have to shift. Position determines work.' }
   }
   if (tried.count < 4) {
-    return { tone: 'neutral', eyebrow: 'Keep going', text: 'Position determines cost. Keep experimenting.', detail: 'Try inserting too — it works the same way in reverse.' }
+    return { tone: 'neutral', eyebrow: 'Why shifting?', text: 'Arrays maintain contiguous positions. When you remove an element, everything behind the gap must shift forward to keep the positions sequential.', detail: 'Try inserting too — it works the same way in reverse (shift everything back to make room).' }
   }
   if (tried.count < 6) {
-    return { tone: 'accent', eyebrow: 'O(n)', text: 'Front = expensive. End = cheap. The array shifts everything behind.', detail: null }
+    return { tone: 'accent', eyebrow: 'Front vs end', text: 'Front operations = O(n) — many shifts. End operations = O(1) — no shifts. Arrays give you instant access anywhere, but mutations at the front are expensive.', detail: 'This tradeoff is why different structures exist: arrays trade mutation cost for access speed.' }
   }
   return { tone: 'muted', eyebrow: 'Tip', text: 'Compare the front, middle, and end. Same delete, different ripple.', detail: null }
 }
