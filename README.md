@@ -109,6 +109,10 @@ Tone palettes, cards, and buttons are extracted and reused across all scenarios 
 ### 6. **Structure-Specific Truth**
 The interaction loop is shared across scenarios, but the visuals must match the structure. Arrays teach shifts. Linked lists teach traversal and rewiring. Stacks and queues teach access constraints. Hash tables teach probing and displacement.
 
+## Critical Review
+
+See `CRITICAL_REVIEW.md` for a current critique of how the structures and their visual representations teach cost, plus prioritized follow-up work.
+
 ## Development Workflow
 
 ### Lint
