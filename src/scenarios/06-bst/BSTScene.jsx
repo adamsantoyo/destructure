@@ -54,27 +54,27 @@ function layoutTree(root) {
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'What is a BST?', text: 'Left child is smaller, right child is larger. Each comparison picks a direction — you never search the whole tree.', detail: 'Insert values and watch the tree grow. Then click a node to search or delete it. The shape of the tree determines the cost.' }
+    return { tone: 'neutral', eyebrow: 'How does a BST work?', text: 'The root is directly accessible. Everything else requires comparisons — left for smaller, right for larger — until you find what you need.', detail: 'Click "Insert" to add values, then click any node to search or delete. The tree\'s shape determines how much work each operation takes.' }
   }
   if (tried.count === 1 && lastOp) {
     if (lastOp.action === 'Search') {
       return lastOp.steps === 0
-        ? { tone: 'accent', eyebrow: 'Root', text: `Found "${lastOp.label}" at the root — 0 path steps.`, detail: 'Now insert a few values and search again. Watch the path get longer as the tree grows.' }
-        : { tone: 'accent', eyebrow: 'Found', text: `"${lastOp.label}" was ${lastOp.steps} step${lastOp.steps !== 1 ? 's' : ''} from the root. Each comparison sent you left or right.`, detail: 'Insert more values and watch how the tree\'s shape changes the cost.' }
+        ? { tone: 'accent', eyebrow: 'Root access', text: `Found "${lastOp.label}" at the root — 0 comparisons needed.`, detail: 'Root access is instant. Everything else requires following comparisons down the tree.' }
+        : { tone: 'accent', eyebrow: 'Found it', text: `Reached "${lastOp.label}" after ${lastOp.steps} comparison${lastOp.steps !== 1 ? 's' : ''}. Each comparison eliminated half the remaining possibilities.`, detail: 'Insert more values and search again. Watch how the tree\'s shape affects the number of comparisons.' }
     }
     if (lastOp.action === 'Insert') {
-      return { tone: 'accent', eyebrow: 'Inserted', text: `"${lastOp.label}" landed ${lastOp.steps} step${lastOp.steps !== 1 ? 's' : ''} from the root. New nodes always become leaves.`, detail: 'Keep inserting — the tree\'s shape will determine how expensive everything gets.' }
+      return { tone: 'accent', eyebrow: 'Inserted', text: `"${lastOp.label}" required ${lastOp.steps} comparison${lastOp.steps !== 1 ? 's' : ''} to find its spot. New values always become leaves.`, detail: 'Keep inserting — the tree\'s shape will determine how expensive future operations become.' }
     }
-    return { tone: 'accent', eyebrow: 'Deleted', text: `Removed "${lastOp.label}" from the tree.`, detail: 'Try inserting values to rebuild and watch the shape change.' }
+    return { tone: 'accent', eyebrow: 'Deleted', text: `Removed "${lastOp.label}" from the tree.`, detail: 'Try inserting more values and deleting nodes with two children to see the cost difference.' }
   }
   if (lastOp && lastOp.action === 'Delete' && lastOp.deleteCase === 'two-children') {
-    return { tone: 'danger', eyebrow: 'Two children', text: `"${lastOp.label}" had two children \u2014 the tree found the next-largest value (in-order successor) to take its place.`, detail: 'That\u2019s why 2-child deletes cost more: find the node, then walk to its successor.' }
+    return { tone: 'danger', eyebrow: 'Two children', text: `"${lastOp.label}" had two children \u2014 the tree had to find and promote the next-largest value (in-order successor) to take its place.`, detail: 'That\u2019s why 2-child deletes cost more: first find the node, then walk to find its successor.' }
   }
   if (tried.count < 4) {
-    return { tone: 'neutral', eyebrow: 'Keep inserting', text: 'Watch which side gets deeper. The deeper the tree, the longer the path to find anything.', detail: 'Try inserting sorted values (like 1, 2, 3, 4) to see what happens to the shape.' }
+    return { tone: 'neutral', eyebrow: 'Shape controls cost', text: 'A wide, shallow tree means fewer comparisons. A long, skinny tree means more comparisons for the same number of values.', detail: 'Try inserting sorted values (like 1, 2, 3, 4) and watch the tree become a chain — each search will require visiting every node.' }
   }
   if (tried.count < 7) {
-    return { tone: 'success', eyebrow: 'Shape matters', text: 'Balanced tree \u2248 O(log n). Skewed tree \u2248 O(n). Same rules, different cost.', detail: 'That\u2019s why self-balancing trees (AVL, Red-Black) exist \u2014 to prevent the worst case.' }
+    return { tone: 'success', eyebrow: 'Balanced vs skewed', text: 'Balanced tree \u2248 O(log n) \u2014 each comparison cuts the search space in half. Skewed tree \u2248 O(n) \u2014 you have to check every node.', detail: 'Self-balancing trees (AVL, Red-Black) automatically prevent the worst case by keeping the tree wide and shallow.' }
   }
   return null
 }
@@ -278,7 +278,7 @@ export default function BSTScene() {
       setHighlightedValue(value)
     })
 
-    const costText = result.steps === 0 ? 'O(1) · root' : `${result.steps} path step${result.steps !== 1 ? 's' : ''}`
+    const costText = result.steps === 0 ? 'O(1) · root' : `${result.steps} comparison${result.steps !== 1 ? 's' : ''}`
     appendHistory({ action: 'Search', label: String(value), cost: result.steps, costText })
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Search', label: String(value), steps: result.steps })
@@ -298,7 +298,7 @@ export default function BSTScene() {
       setPathValues([])
     })
 
-    const costText = result.steps === 0 ? 'O(1) · root' : `${result.steps} path step${result.steps !== 1 ? 's' : ''}`
+    const costText = result.steps === 0 ? 'O(1) · root' : `${result.steps} comparison${result.steps !== 1 ? 's' : ''}`
     appendHistory({ action: 'Insert', label: String(value), cost: result.steps, costText })
     setTried(prev => ({ any: true, count: prev.count + 1 }))
     setLastOp({ action: 'Insert', label: String(value), steps: result.steps })
@@ -323,7 +323,7 @@ export default function BSTScene() {
     if (result.deleteCase === 'two-children') {
       costText = `${result.steps} to find + ${result.successorSteps} successor`
     } else {
-      costText = totalCost === 0 ? 'O(1) · root' : `${totalCost} path step${totalCost !== 1 ? 's' : ''}`
+      costText = totalCost === 0 ? 'O(1) · root' : `${totalCost} comparison${totalCost !== 1 ? 's' : ''}`
     }
     appendHistory({ action: 'Delete', label: String(value), cost: totalCost, costText })
     setTried(prev => ({ any: true, count: prev.count + 1 }))
@@ -384,8 +384,8 @@ export default function BSTScene() {
     : !hasSteps
       ? 'root access · O(1)'
       : isDegrading
-        ? `${lastSteps} path steps · approaching O(n)`
-        : `${lastSteps} path step${lastSteps !== 1 ? 's' : ''} · O(log n) avg`
+        ? `${lastSteps} comparisons · approaching O(n)`
+        : `${lastSteps} comparison${lastSteps !== 1 ? 's' : ''} · O(log n) avg`
 
   /* ── Layout ── */
   const layout = layoutTree(tree)
@@ -416,7 +416,7 @@ export default function BSTScene() {
       subtitle="Left is smaller, right is larger. Shape controls speed."
       stats={(
         <>
-          <Counter value={lastSteps} danger={hasSteps && isDegrading} label="path steps" />
+          <Counter value={lastSteps} danger={hasSteps && isDegrading} label="comparisons" />
           <StatusPill tone={statusTone}>{statusText}</StatusPill>
         </>
       )}
@@ -481,7 +481,7 @@ export default function BSTScene() {
                   label: 'Search',
                   preview: 'Follow the comparisons from the root to this node.',
                   cost: popover.searchCost,
-                  costUnit: 'path step',
+                  costUnit: 'comparison',
                   onClick: () => executeSearch(popover.value),
                   icon: '?',
                 },
@@ -489,15 +489,15 @@ export default function BSTScene() {
                   label: 'Delete',
                   preview: 'Remove this node and let the tree repair the ordering.',
                   cost: popover.searchCost,
-                  costUnit: 'path step',
+                  costUnit: 'comparison',
                   onClick: () => executeDelete(popover.value),
                   icon: '-',
                 },
                 {
                   label: `Next insert ${nextVal}`,
-                  preview: `${nextInsertResult.steps} path step${nextInsertResult.steps !== 1 ? 's' : ''} from the root for the next value.`,
+                  preview: `${nextInsertResult.steps} comparison${nextInsertResult.steps !== 1 ? 's' : ''} from the root for the next value.`,
                   cost: nextInsertResult.steps,
-                  costUnit: 'path step',
+                  costUnit: 'comparison',
                   icon: '+',
                   disabled: true,
                 },
