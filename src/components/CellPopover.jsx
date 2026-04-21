@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion' // eslint-disable-line no-unused-vars
 import styles from './CellPopover.module.css'
 import { getSmartPosition } from '../utils/smartPosition'
+import Icon from './Icon'
 
 function costColor(cost, maxCost) {
   if (cost === 0) return 'var(--success)'

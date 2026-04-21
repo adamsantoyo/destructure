@@ -684,6 +684,27 @@
   .modeTab {
     min-width: auto;
     flex: 1;
+    /* Improved touch targets for mobile */
+    min-height: 44px;
+    padding: 0.8rem 1rem;
+  }
+
+  /* Improved mobile touch targets */
+  .collapseButton,
+  .menuButton {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .scenarioButton {
+    padding: 1rem 1.1rem;
+    min-height: 48px;
+  }
+
+  .glossaryButton {
+    padding: 1rem;
+    min-height: 44px;
   }
 
   .referenceTab {
@@ -693,6 +714,9 @@
     border-radius: var(--radius-pill);
     border-right: 1px solid rgba(0, 255, 200, 0.2);
     right: var(--space-3);
+    /* Better touch target */
+    min-height: 44px;
+    padding: 1rem 1.2rem;
   }
 
   .referenceTabOpen {
