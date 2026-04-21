@@ -1,0 +1,91 @@
+/* Enhanced focus styles for better keyboard navigation accessibility */
+
+/* Remove default focus outline and add custom focus-visible styling */
+*:focus {
+  outline: none;
+}
+
+/* Enhanced focus-visible for interactive elements */
+*:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: inherit;
+}
+
+/* Button focus styles */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 4px rgba(61, 241, 199, 0.2);
+}
+
+/* Link focus styles */
+a:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Input focus styles */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* Tab focus styles */
+[role="tab"]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+  box-shadow: 0 0 0 3px rgba(61, 241, 199, 0.15);
+}
+
+/* Danger/destructive action focus */
+button.danger:focus-visible,
+[data-danger="true"]:focus-visible {
+  outline: var(--focus-ring-danger);
+  box-shadow: 0 0 0 4px rgba(255, 111, 138, 0.2);
+}
+
+/* Cell and interactive grid elements */
+[data-nav-group]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(61, 241, 199, 0.15);
+  z-index: 1;
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 0 0 8px 0;
+  font-weight: 600;
+  z-index: 100;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline-width: 3px;
+    box-shadow: 0 0 0 6px rgba(61, 241, 199, 0.3);
+  }
+}

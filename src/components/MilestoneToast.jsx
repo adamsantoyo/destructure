@@ -4,7 +4,7 @@ import styles from './MilestoneToast.module.css'
 
 export default function MilestoneToast({ toast, onClose }) {
   return (
-    <div className={styles.toastWrap}>
+    <div className={styles.toastWrap} role="status" aria-live="polite" aria-atomic="true">
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -16,8 +16,9 @@ export default function MilestoneToast({ toast, onClose }) {
             className={styles.toast}
             onMouseEnter={toast.onPause}
             onMouseLeave={toast.onResume}
+            role="alert"
           >
-            <div className={styles.icon}>!</div>
+            <div className={styles.icon} aria-hidden="true">!</div>
             <div>
               <div className={styles.title}>{toast.title}</div>
               <div className={styles.body}>{toast.body}</div>

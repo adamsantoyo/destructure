@@ -1,6 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion' // eslint-disable-line no-unused-vars
 import styles from './CellPopover.module.css'
+import { getSmartPosition } from '../utils/smartPosition'
+import Icon from './Icon'
 
 function costColor(cost, maxCost) {
   if (cost === 0) return 'var(--success)'
@@ -42,6 +44,21 @@ export default function CellPopover({
   title,
   rows,
 }) {
+  const popoverRef = useRef(null)
+  const [adjustedPosition, setAdjustedPosition] = useState(position)
+
+  useEffect(() => {
+    if (popoverRef.current && position) {
+      const smartPos = getSmartPosition({
+        x: position.x,
+        y: position.y,
+        element: popoverRef.current,
+        preferredPosition: 'bottom',
+      })
+      setAdjustedPosition({ x: smartPos.x, y: smartPos.y })
+    }
+  }, [position])
+
   useEffect(() => {
     function handleKeydown(event) {
       if (event.key === 'Escape') onClose?.()
@@ -90,6 +107,7 @@ export default function CellPopover({
       <div onClick={onClose} className={styles.backdrop} role="presentation" />
 
       <motion.div
+        ref={popoverRef}
         initial={{ opacity: 0, y: -6, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -4, scale: 0.97 }}
@@ -97,7 +115,7 @@ export default function CellPopover({
         className={styles.popover}
         role="dialog"
         aria-label={heading}
-        style={{ left: position.x, top: position.y, transform: 'translateX(-50%)' }}
+        style={{ left: adjustedPosition.x, top: adjustedPosition.y }}
       >
         <div className={styles.header}>
           <div className={styles.eyebrow}>{eyebrow}</div>

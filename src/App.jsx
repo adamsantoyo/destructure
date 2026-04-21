@@ -11,6 +11,7 @@ import CompareScene from './modes/compare/CompareScene'
 import InfoPanel from './components/InfoPanel'
 import WelcomeOverlay from './components/WelcomeOverlay'
 import MilestoneToast from './components/MilestoneToast'
+import ThemeToggle from './components/ThemeToggle'
 
 const STORAGE_KEY = 'destructure-progress-v2'
 const INFO_PANEL_KEY = 'destructure-info-panel-open'
@@ -268,6 +269,8 @@ export default function App() {
 
   return (
     <div className={`appShell ${sidebarCollapsed ? 'sidebarCollapsed' : ''}`}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+
       <div className={`sidebarBackdrop ${sidebarOpen ? 'sidebarBackdropOpen' : ''}`} onClick={() => setSidebarOpen(false)} />
 
       <aside className={[
@@ -378,6 +381,8 @@ export default function App() {
           </div>
 
           <div className="topbarActions">
+            <ThemeToggle />
+
             <div className="stageBadge">
               <span className="progressPill">{exploredCount}/{SCENARIOS.length} explored</span>
             </div>
@@ -413,7 +418,7 @@ export default function App() {
         </header>
 
         <div className="stage" id="mode-panel" role="tabpanel" aria-labelledby={`mode-tab-${activeMode}`}>
-          <div className="sceneViewport">
+          <div className="sceneViewport" id="main-content" tabIndex={-1}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${activeMode}-${activeId}`}
