@@ -11,6 +11,7 @@ import CompareScene from './modes/compare/CompareScene'
 import InfoPanel from './components/InfoPanel'
 import WelcomeOverlay from './components/WelcomeOverlay'
 import MilestoneToast from './components/MilestoneToast'
+import ThemeToggle from './components/ThemeToggle'
 
 const STORAGE_KEY = 'destructure-progress-v2'
 const INFO_PANEL_KEY = 'destructure-info-panel-open'
@@ -380,6 +381,8 @@ export default function App() {
           </div>
 
           <div className="topbarActions">
+            <ThemeToggle />
+
             <div className="stageBadge">
               <span className="progressPill">{exploredCount}/{SCENARIOS.length} explored</span>
             </div>

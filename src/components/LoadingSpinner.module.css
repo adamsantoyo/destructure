@@ -1,0 +1,78 @@
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg {
+  animation: rotate 1.4s linear infinite;
+}
+
+.circle {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-dasharray: 80, 200;
+  stroke-dashoffset: 0;
+  animation: dash 1.4s ease-in-out infinite;
+}
+
+.small {
+  width: 1rem;
+  height: 1rem;
+}
+
+.medium {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.large {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -124;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .svg {
+    animation: none;
+  }
+
+  .circle {
+    animation: none;
+    stroke-dasharray: 126;
+  }
+}
+
+/* Visually hidden but accessible to screen readers */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
