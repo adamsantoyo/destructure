@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './focus.css';
 
 @font-face {
   font-family: 'JetBrains Mono';

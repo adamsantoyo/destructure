@@ -268,6 +268,8 @@ export default function App() {
 
   return (
     <div className={`appShell ${sidebarCollapsed ? 'sidebarCollapsed' : ''}`}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+
       <div className={`sidebarBackdrop ${sidebarOpen ? 'sidebarBackdropOpen' : ''}`} onClick={() => setSidebarOpen(false)} />
 
       <aside className={[
@@ -413,7 +415,7 @@ export default function App() {
         </header>
 
         <div className="stage" id="mode-panel" role="tabpanel" aria-labelledby={`mode-tab-${activeMode}`}>
-          <div className="sceneViewport">
+          <div className="sceneViewport" id="main-content" tabIndex={-1}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${activeMode}-${activeId}`}
