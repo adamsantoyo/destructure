@@ -25,19 +25,19 @@ const TRAVERSE_BASE_DURATION = 0.3    // settle time
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'What is a linked list?', text: 'Each node holds a value and a pointer to the next. There are no positions — to reach a node, you follow the chain from the start.', detail: 'Click a node. The cost is how many steps it takes to walk there, not how many elements shift.' }
+    return { tone: 'neutral', eyebrow: 'How does a linked list work?', text: 'Each node holds a value and a pointer to the next. There are no positions — to reach a node, you follow the chain from the head.', detail: 'Click a node. The cost is how many nodes you must visit to reach it, not how many elements shift.' }
   }
   if (lastOp && lastOp.action === 'Delete' && lastOp.index === 0 && !tried.end) {
-    return { tone: 'accent', eyebrow: 'O(1)', text: 'Deleting the head was free — no traversal. Now try the tail.', detail: 'How do you reach the last node without an index?' }
+    return { tone: 'accent', eyebrow: 'Head is free', text: 'Deleting the head was O(1) — no traversal needed. Just rewire the pointer. Now try the tail.', detail: 'How do you reach the last node without an index? You have to walk the entire chain.' }
   }
   if (tried.front && tried.end && !tried.middle) {
-    return { tone: 'success', eyebrow: 'Pattern', text: `Head: ${tried.frontCost} steps. Tail: ${tried.endCost} steps. Try the middle.`, detail: 'The cost isn\'t shifting — it\'s walking there.' }
+    return { tone: 'success', eyebrow: 'Pattern emerges', text: `Head: ${tried.frontCost} steps. Tail: ${tried.endCost} steps. Try the middle now.`, detail: 'The cost isn\'t shifting — it\'s walking there. Each node you visit is a traversal step.' }
   }
   if (tried.count < 4) {
-    return { tone: 'neutral', eyebrow: 'Keep going', text: 'The cost is traversal, not shifting. Every node is a step.', detail: 'Try inserting too — same walk, different wiring.' }
+    return { tone: 'neutral', eyebrow: 'Why traversal?', text: 'No random access means every operation (except at the head) requires traversal first. But once you reach the target, rewiring is instant.', detail: 'Try inserting too — same walk to the target, different pointer changes.' }
   }
   if (tried.count < 6) {
-    return { tone: 'accent', eyebrow: 'O(n) walk', text: 'Head = free. Everything else = walk there first. No random access.', detail: null }
+    return { tone: 'accent', eyebrow: 'Head vs everything else', text: 'Head operations = O(1) — direct access. Everything else = O(n) — walk there first, then rewire.', detail: 'Linked lists trade array shifts for traversal. Middle operations are still O(n), but the work is different (walking vs shifting).' }
   }
   return null
 }
