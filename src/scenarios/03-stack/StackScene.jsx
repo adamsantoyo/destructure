@@ -22,18 +22,18 @@ const INSERT_NAMES = ['Ash', 'Rune', 'Flux', 'Dew', 'Coda', 'Wren', 'Lux', 'Byte
 
 function getNudge(tried, lastOp) {
   if (!tried.any) {
-    return { tone: 'neutral', eyebrow: 'What is a stack?', text: 'A collection where you can only add or remove from the top. Last in, first out — like a stack of plates.', detail: 'Click any item. The top one can be removed. Everything below is blocked.' }
+    return { tone: 'neutral', eyebrow: 'How does a stack work?', text: 'Only the top is reachable. Everything below is buried — you cannot access it until you remove what\u2019s above.', detail: 'Click any item. The top can be popped (O(1)). Everything else is blocked.' }
   }
   if (tried.count === 1 && lastOp) {
     return lastOp.action === 'Pop'
-      ? { tone: 'accent', eyebrow: 'LIFO', text: `"${lastOp.label}" was the last in, so it was first out. Try pushing more, then popping.`, detail: null }
-      : { tone: 'accent', eyebrow: 'Pushed', text: `"${lastOp.label}" is now on top. Everything below is buried. Pop to see the order.`, detail: null }
+      ? { tone: 'accent', eyebrow: 'LIFO in action', text: `"${lastOp.label}" was last in, so it came out first. That\u2019s the stack rule: last in, first out.`, detail: 'Whatever you pushed most recently is what you get back first.' }
+      : { tone: 'accent', eyebrow: 'Pushed to top', text: `"${lastOp.label}" is now on top. Everything below is buried until you pop this one off.`, detail: 'Pop several times and watch the buried items resurface in reverse order.' }
   }
   if (tried.count < 4) {
-    return { tone: 'neutral', eyebrow: 'Keep going', text: 'Push several, then pop several. The order tells the story.', detail: 'Try alternating: push, pop, push, push, pop, pop.' }
+    return { tone: 'neutral', eyebrow: 'Why O(1)?', text: 'No matter how tall the stack grows, accessing the top stays instant — no traversal or shifting needed.', detail: 'Try alternating: push, pop, push, push, pop, pop. Watch the order reverse.' }
   }
   if (tried.count < 6) {
-    return { tone: 'success', eyebrow: 'Pattern', text: 'Push order: A, B, C. Pop order: C, B, A. That\u2019s LIFO.', detail: 'Last In, First Out — like a stack of plates.' }
+    return { tone: 'success', eyebrow: 'Order reversed', text: 'Push order: A, B, C. Pop order: C, B, A. That\u2019s LIFO — last in, first out.', detail: 'Stacks are used for undo systems, function call stacks, and depth-first traversal (like navigating folders).' }
   }
   return null
 }
