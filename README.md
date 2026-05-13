@@ -164,7 +164,6 @@ Modern browsers (ES2020+). Tested on Chrome, Firefox, Safari.
 - [x] Hash Table scenario with linear probing
 - [x] Tests for `structures/*` logic
 - [x] Binary Search Tree scenario with shape-sensitive cost
-- [x] Pre-BST readiness gate (`PRE_BST_CHECKLIST.md`) and manual review (`MANUAL_REVIEW.md`)
 - [ ] Comparison mode: run same operation on multiple structures
 - [ ] Challenge / Break It modes
 - [ ] README hero GIF and deployment polish
